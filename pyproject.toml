@@ -1,0 +1,44 @@
+[project]
+name = "wsd_assignment02_project"
+version = "0.1.0"
+description = "Async FastAPI project scaffold for Assignment 2"
+readme = "README.md"
+requires-python = ">=3.13.9"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "SQLAlchemy",
+    "aiomysql",
+    "redis",
+    "python-jose",
+    "passlib[bcrypt]",
+    "python-dotenv",
+    "pydantic",
+    "pydantic-settings>=2.12.0",
+]
+#[project.dependencies]
+#fastapi = "^0.95.0"
+#uvicorn = {extras = ["standard"], version = "^0.22.0"}
+#SQLAlchemy = "^2.0.0"
+#aiomysql = "^1.1.0"
+#redis = "^4.5.0"
+#python-jose = "^3.3.0"
+#passlib = {extras=["bcrypt"], version="^1.8.0"}
+#python-dotenv = "^1.0.0"
+#pydantic = "^2.6.0"
+
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "alembic",
+    "pytest-cov",
+    "mypy",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+

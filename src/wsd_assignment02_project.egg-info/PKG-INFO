@@ -1,0 +1,43 @@
+Metadata-Version: 2.4
+Name: wsd_assignment02_project
+Version: 0.1.0
+Summary: Async FastAPI project scaffold for Assignment 2
+Requires-Python: >=3.13.9
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: SQLAlchemy
+Requires-Dist: aiomysql
+Requires-Dist: redis
+Requires-Dist: python-jose
+Requires-Dist: passlib[bcrypt]
+Requires-Dist: python-dotenv
+Requires-Dist: pydantic
+Requires-Dist: pydantic-settings>=2.12.0
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-asyncio; extra == "dev"
+Requires-Dist: httpx; extra == "dev"
+Requires-Dist: alembic; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+
+# Assignment 2 - Project scaffold
+
+This folder contains an async FastAPI project scaffold for Assignment 2.
+
+Quick start (using Docker Compose):
+
+```bash
+# copy .env.example → .env and edit values
+cp .env.example .env
+
+docker compose up --build
+```
+
+The API will be available at http://localhost:8000 and docs at /docs
+
+Notes:
+- The scaffold uses async SQLAlchemy (aiomysql) and Redis (redis.asyncio).
+- For local development without Docker, configure a local MySQL instance and Redis and set `DATABASE_URL` and `REDIS_URL` in the environment.
+
