@@ -1,13 +1,12 @@
 import logging
-import asyncio
 from fastapi import FastAPI
 from starlette.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from .config import settings
 from .constants import API_TITLE, API_DESCRIPTION, API_VERSION
-from .db.base import init_db, close_db, get_engine
-from .redis_client import init_redis, close_redis, get_redis
+from .db.base import init_db, close_db
+from .redis_client import init_redis, close_redis
 
 from .middleware.logging_middleware import LoggingMiddleware
 from .api.auth_router import router as auth_router
@@ -20,6 +19,15 @@ from fne.api.reviews import router as reviews_router
 from fne.api.comments import router as comments_router
 from fne.api.likes import router as likes_router
 from fne.api.orders import router as orders_router
+
+# include our extra routers (partial implementations from HandIn)
+from .api.books_extra import router as books_extra_router
+from .api.authors_extra import router as authors_extra_router
+from .api.reviews_extra import router as reviews_extra_router
+from .api.comments_extra import router as comments_extra_router
+from .api.comment_likes import router as comment_likes_router
+from .api.users_extra import router as users_extra_router
+from .api.orders_extra import router as orders_extra_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,12 +73,19 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(auth_router)
     app.include_router(books_router)
+    app.include_router(books_extra_router)
     app.include_router(authors_router)
+    app.include_router(authors_extra_router)
     app.include_router(users_router)
+    app.include_router(users_extra_router)
     app.include_router(reviews_router)
+    app.include_router(reviews_extra_router)
     app.include_router(comments_router)
+    app.include_router(comments_extra_router)
     app.include_router(likes_router)
+    app.include_router(comment_likes_router)
     app.include_router(orders_router)
+    app.include_router(orders_extra_router)
 
     return app
 

@@ -1,0 +1,29 @@
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import List
+from app.db.models import Comment, UserBookReview
+from app.db.base import get_session
+
+router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
+
+class CommentOut(BaseModel):
+    id: str
+    user_id: str
+    review_id: str
+    content: str | None = None
+
+    model_config = {"extra": "ignore", "from_attributes": True}
+
+@router.get("/{review_id}/comments", response_model=List[CommentOut])
+async def list_comments_for_review(review_id: str, page: int = 1, per_page: int = 20):
+    async with get_session() as session:
+        # ensure review exists
+        r = await session.get(UserBookReview, review_id)
+        if not r:
+            raise HTTPException(status_code=404, detail="Review not found")
+        from sqlalchemy import select
+        stmt = select(Comment).where(Comment.review_id == review_id).offset((page - 1) * per_page).limit(per_page)
+        res = await session.execute(stmt)
+        cms = res.scalars().all()
+        return [CommentOut.model_validate(c) for c in cms]
+
