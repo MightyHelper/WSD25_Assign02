@@ -1,0 +1,428 @@
+{
+  "info": {
+    "name": "Assignment02 API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/health"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/auth/login"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Book",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Books",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Book",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/{book_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Book",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/{book_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Book",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/{book_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Cover",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/{book_id}/cover"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Cover",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/{book_id}/cover"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upload Cover",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/{book_id}/cover"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Like Book",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/books/{book_id}/like"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Author",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/authors/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Authors",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/authors/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Author",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/authors/{author_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create User",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/users/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get User",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/users/{user_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Me",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/users/me"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get My Likes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/users/me/likes"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Review",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/reviews/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Review",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/reviews/{review_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Review",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/reviews/{review_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Reviews For Book",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/reviews/book/{book_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Comment",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/comments/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Comment",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/comments/{comment_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Comment",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/comments/{comment_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Comments For Review",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/reviews/{review_id}/comments"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Comment Under Review",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/reviews/{review_id}/comments"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Upsert Like",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/likes/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Like",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/likes/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Like Comment",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/reviews/{review_id}/comments/{comment_id}/like"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Unlike Comment",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/reviews/{review_id}/comments/{comment_id}/like"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Order",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/orders/"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Order",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/orders/{order_id}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Set Order Item",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/orders/{order_id}/items"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Pay Order",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": null,
+        "url": {
+          "raw": "http://localhost/api/v1/orders/{order_id}/pay"
+        }
+      },
+      "response": []
+    }
+  ]
+}
