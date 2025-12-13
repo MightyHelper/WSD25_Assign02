@@ -2,3 +2,4 @@
 **/*.pyc
 uploads/
 **/*.egg-info/
+*.sqlite
