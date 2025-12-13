@@ -1,0 +1,1597 @@
+openapi: 3.1.0
+info:
+  title: Assignment02 API
+  description: Async FastAPI application scaffold
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      operationId: login_api_v1_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/register:
+    post:
+      tags:
+      - auth
+      summary: Register
+      description: Register a new user (no authentication required). Returns an access
+        token.
+      operationId: register_api_v1_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/books/:
+    post:
+      tags:
+      - books
+      summary: Create Book
+      operationId: create_book_api_v1_books__post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - books
+      summary: List Books
+      operationId: list_books_api_v1_books__get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          title: Per Page
+      - name: title
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+      - name: author_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookListOut'
+                title: Response List Books Api V1 Books  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/books/{book_id}:
+    get:
+      tags:
+      - books
+      summary: Get Book
+      operationId: get_book_api_v1_books__book_id__get
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - books
+      summary: Update Book
+      operationId: update_book_api_v1_books__book_id__put
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - books
+      summary: Delete Book
+      operationId: delete_book_api_v1_books__book_id__delete
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/books/{book_id}/cover:
+    put:
+      tags:
+      - books
+      summary: Upload Cover
+      operationId: upload_cover_api_v1_books__book_id__cover_put
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - books
+      summary: Get Cover
+      description: Return cover image bytes for a book if present.
+      operationId: get_cover_api_v1_books__book_id__cover_get
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - books
+      summary: Upload Cover
+      description: Upload a cover image for a book. Uses configured storage (fs or
+        db). Accepts raw bytes in the request body.
+      operationId: upload_cover_api_v1_books__book_id__cover_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/books/{book_id}/like:
+    patch:
+      tags:
+      - books
+      summary: Like Book
+      description: 'Upsert the user''s like/wishlist flags for a book.
+
+        Accepts query parameters: wishlist, favourite.
+
+        Returns 201 when created, 200 when updated.'
+      operationId: like_book_api_v1_books__book_id__like_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      - name: wishlist
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Wishlist
+      - name: favourite
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Favourite
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__books_extra__LikeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/authors/:
+    post:
+      tags:
+      - authors
+      summary: Create Author
+      operationId: create_author_api_v1_authors__post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__authors_extra__AuthorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - authors
+      summary: List Authors
+      operationId: list_authors_api_v1_authors__get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          title: Per Page
+      - name: name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/app__api__authors_extra__AuthorOut'
+                title: Response List Authors Api V1 Authors  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/authors/{author_id}:
+    get:
+      tags:
+      - authors
+      summary: Get Author
+      operationId: get_author_api_v1_authors__author_id__get
+      parameters:
+      - name: author_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Author Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__authors_extra__AuthorOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/:
+    post:
+      tags:
+      - users
+      summary: Create User
+      operationId: create_user_api_v1_users__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserIn'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/fne__api__users__UserOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/{user_id}:
+    get:
+      tags:
+      - users
+      summary: Get User
+      operationId: get_user_api_v1_users__user_id__get
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/fne__api__users__UserOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/me:
+    get:
+      tags:
+      - users
+      summary: Get Me
+      operationId: get_me_api_v1_users_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__users_extra__UserOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/users/me/likes:
+    get:
+      tags:
+      - users
+      summary: Get My Likes
+      operationId: get_my_likes_api_v1_users_me_likes_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          title: Per Page
+      - name: wishlist
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Wishlist
+      - name: favourite
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Favourite
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/app__api__users_extra__LikeOut'
+                title: Response Get My Likes Api V1 Users Me Likes Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reviews/:
+    post:
+      tags:
+      - reviews
+      summary: Create Review
+      operationId: create_review_api_v1_reviews__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewIn'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__reviews_extra__ReviewOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reviews/{review_id}:
+    get:
+      tags:
+      - reviews
+      summary: Get Review
+      operationId: get_review_api_v1_reviews__review_id__get
+      parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Review Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__reviews_extra__ReviewOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - reviews
+      summary: Delete Review
+      operationId: delete_review_api_v1_reviews__review_id__delete
+      parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Review Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reviews/book/{book_id}:
+    get:
+      tags:
+      - reviews
+      summary: List Reviews For Book
+      operationId: list_reviews_for_book_api_v1_reviews_book__book_id__get
+      parameters:
+      - name: book_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          title: Per Page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/app__api__reviews_extra__ReviewOut'
+                title: Response List Reviews For Book Api V1 Reviews Book  Book Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/comments/:
+    post:
+      tags:
+      - comments
+      summary: Create Comment
+      operationId: create_comment_api_v1_comments__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/fne__api__comments__CommentIn'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__comments_extra__CommentOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/comments/{comment_id}:
+    get:
+      tags:
+      - comments
+      summary: Get Comment
+      operationId: get_comment_api_v1_comments__comment_id__get
+      parameters:
+      - name: comment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Comment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__comments_extra__CommentOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - comments
+      summary: Delete Comment
+      operationId: delete_comment_api_v1_comments__comment_id__delete
+      parameters:
+      - name: comment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Comment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reviews/{review_id}/comments:
+    get:
+      tags:
+      - reviews
+      summary: List Comments For Review
+      operationId: list_comments_for_review_api_v1_reviews__review_id__comments_get
+      parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Review Id
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Page
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 20
+          title: Per Page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/app__api__comments_extra__CommentOut'
+                title: Response List Comments For Review Api V1 Reviews  Review Id  Comments
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - reviews
+      summary: Create Comment Under Review
+      description: 'Adapter route: create a comment for a given review id.
+
+        This mirrors the top-level `POST /api/v1/comments/` behavior but keeps a nicer
+        nested URL.'
+      operationId: create_comment_under_review_api_v1_reviews__review_id__comments_post
+      parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Review Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/app__api__comments_extra__CommentIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__comments_extra__CommentOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/likes/:
+    post:
+      tags:
+      - likes
+      summary: Upsert Like
+      operationId: upsert_like_api_v1_likes__post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LikeIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/fne__api__likes__LikeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - likes
+      summary: Delete Like
+      operationId: delete_like_api_v1_likes__delete
+      parameters:
+      - name: book_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Book Id
+      - name: user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reviews/{review_id}/comments/{comment_id}/like:
+    post:
+      tags:
+      - reviews
+      summary: Like Comment
+      description: Authenticate and create a like for the comment by the current user.
+      operationId: like_comment_api_v1_reviews__review_id__comments__comment_id__like_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Review Id
+      - name: comment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Comment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__comment_likes__LikeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - reviews
+      summary: Unlike Comment
+      description: Authenticate and remove the current user's like for the comment.
+      operationId: unlike_comment_api_v1_reviews__review_id__comments__comment_id__like_delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Review Id
+      - name: comment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Comment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__comment_likes__LikeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/:
+    post:
+      tags:
+      - orders
+      summary: Create Order
+      operationId: create_order_api_v1_orders__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderIn'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__orders_extra__OrderOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/{order_id}:
+    get:
+      tags:
+      - orders
+      summary: Get Order
+      operationId: get_order_api_v1_orders__order_id__get
+      parameters:
+      - name: order_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Order Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__orders_extra__OrderOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/{order_id}/items:
+    post:
+      tags:
+      - orders
+      summary: Set Order Item
+      operationId: set_order_item_api_v1_orders__order_id__items_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: order_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Order Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/orders/{order_id}/pay:
+    post:
+      tags:
+      - orders
+      summary: Pay Order
+      operationId: pay_order_api_v1_orders__order_id__pay_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: order_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Order Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__orders_extra__OrderOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AuthorIn:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: AuthorIn
+    BookIn:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        author_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author Id
+        isbn:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+      type: object
+      required:
+      - id
+      - title
+      title: BookIn
+    BookListOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        author_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author Id
+      type: object
+      required:
+      - id
+      - title
+      title: BookListOut
+    BookOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        author_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author Id
+        isbn:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Isbn
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+      type: object
+      required:
+      - id
+      - title
+      title: BookOut
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ItemIn:
+      properties:
+        book_id:
+          type: string
+          title: Book Id
+        quantity:
+          type: integer
+          title: Quantity
+      type: object
+      required:
+      - book_id
+      - quantity
+      title: ItemIn
+    ItemOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        order_id:
+          type: string
+          title: Order Id
+        book_id:
+          type: string
+          title: Book Id
+        quantity:
+          type: integer
+          title: Quantity
+      type: object
+      required:
+      - id
+      - order_id
+      - book_id
+      - quantity
+      title: ItemOut
+    LikeIn:
+      properties:
+        book_id:
+          type: string
+          title: Book Id
+        user_id:
+          type: string
+          title: User Id
+        wishlist:
+          type: boolean
+          title: Wishlist
+          default: false
+        favourite:
+          type: boolean
+          title: Favourite
+          default: false
+      type: object
+      required:
+      - book_id
+      - user_id
+      title: LikeIn
+    LoginRequest:
+      properties:
+        username:
+          type: string
+          title: Username
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - username
+      - password
+      title: LoginRequest
+    OrderIn:
+      properties:
+        id:
+          type: string
+          title: Id
+        user_id:
+          type: string
+          title: User Id
+        paid:
+          type: boolean
+          title: Paid
+          default: false
+      type: object
+      required:
+      - id
+      - user_id
+      title: OrderIn
+    RegisterRequest:
+      properties:
+        username:
+          type: string
+          title: Username
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - username
+      - email
+      - password
+      title: RegisterRequest
+    ReviewIn:
+      properties:
+        id:
+          type: string
+          title: Id
+        book_id:
+          type: string
+          title: Book Id
+        user_id:
+          type: string
+          title: User Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        content:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content
+      type: object
+      required:
+      - id
+      - book_id
+      - user_id
+      title: ReviewIn
+    TokenResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        token_type:
+          type: string
+          title: Token Type
+          default: bearer
+      type: object
+      required:
+      - access_token
+      title: TokenResponse
+    UserIn:
+      properties:
+        id:
+          type: string
+          title: Id
+        username:
+          type: string
+          title: Username
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - id
+      - username
+      - email
+      - password
+      title: UserIn
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    app__api__authors_extra__AuthorOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: AuthorOut
+    app__api__books_extra__LikeOut:
+      properties:
+        book_id:
+          type: string
+          title: Book Id
+        user_id:
+          type: string
+          title: User Id
+        wishlist:
+          type: boolean
+          title: Wishlist
+        favourite:
+          type: boolean
+          title: Favourite
+      type: object
+      required:
+      - book_id
+      - user_id
+      - wishlist
+      - favourite
+      title: LikeOut
+    app__api__comment_likes__LikeOut:
+      properties:
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - message
+      title: LikeOut
+    app__api__comments_extra__CommentIn:
+      properties:
+        id:
+          type: string
+          title: Id
+        user_id:
+          type: string
+          title: User Id
+        content:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content
+      type: object
+      required:
+      - id
+      - user_id
+      title: CommentIn
+    app__api__comments_extra__CommentOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        user_id:
+          type: string
+          title: User Id
+        review_id:
+          type: string
+          title: Review Id
+        content:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content
+      type: object
+      required:
+      - id
+      - user_id
+      - review_id
+      title: CommentOut
+    app__api__orders_extra__OrderOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        user_id:
+          type: string
+          title: User Id
+        paid:
+          type: boolean
+          title: Paid
+      type: object
+      required:
+      - id
+      - user_id
+      - paid
+      title: OrderOut
+    app__api__reviews_extra__ReviewOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        book_id:
+          type: string
+          title: Book Id
+        user_id:
+          type: string
+          title: User Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        content:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content
+      type: object
+      required:
+      - id
+      - book_id
+      - user_id
+      title: ReviewOut
+    app__api__users_extra__LikeOut:
+      properties:
+        book_id:
+          type: string
+          title: Book Id
+        user_id:
+          type: string
+          title: User Id
+        wishlist:
+          type: boolean
+          title: Wishlist
+        favourite:
+          type: boolean
+          title: Favourite
+      type: object
+      required:
+      - book_id
+      - user_id
+      - wishlist
+      - favourite
+      title: LikeOut
+    app__api__users_extra__UserOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        username:
+          type: string
+          title: Username
+        email:
+          type: string
+          title: Email
+        active_order_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Active Order Id
+      type: object
+      required:
+      - id
+      - username
+      - email
+      title: UserOut
+    fne__api__comments__CommentIn:
+      properties:
+        id:
+          type: string
+          title: Id
+        user_id:
+          type: string
+          title: User Id
+        review_id:
+          type: string
+          title: Review Id
+        content:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content
+      type: object
+      required:
+      - id
+      - user_id
+      - review_id
+      title: CommentIn
+    fne__api__likes__LikeOut:
+      properties:
+        book_id:
+          type: string
+          title: Book Id
+        user_id:
+          type: string
+          title: User Id
+        wishlist:
+          type: boolean
+          title: Wishlist
+        favourite:
+          type: boolean
+          title: Favourite
+      type: object
+      required:
+      - book_id
+      - user_id
+      - wishlist
+      - favourite
+      title: LikeOut
+    fne__api__users__UserOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        username:
+          type: string
+          title: Username
+        email:
+          type: string
+          format: email
+          title: Email
+      type: object
+      required:
+      - id
+      - username
+      - email
+      title: UserOut
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

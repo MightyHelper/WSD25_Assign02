@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from ..schemas.auth import LoginRequest, TokenResponse
+from ..schemas.auth import LoginRequest, TokenResponse, RegisterRequest
 from ..security.jwt import create_access_token
 from ..db.models import User
-from ..security.password import verify_password
+from ..security.password import verify_password, hash_password
 from ..db.base import get_session
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -25,4 +26,24 @@ async def login(req: LoginRequest):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
         # issue token with subject set to the user's id (stable, not mutable)
         access_token = create_access_token(subject=user.id)
+        return TokenResponse(access_token=access_token)
+
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def register(req: RegisterRequest):
+    """Register a new user (no authentication required). Returns an access token."""
+    async with get_session() as session:
+        from sqlalchemy import select
+        # ensure username/email are unique
+        stmt = select(User).where((User.username == req.username) | (User.email == req.email))
+        res = await session.execute(stmt)
+        existing = res.scalars().first()
+        if existing:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username or email already in use")
+        user_id = str(uuid.uuid4())
+        u = User(id=user_id, username=req.username, email=req.email, password_hash=hash_password(req.password))
+        session.add(u)
+        await session.commit()
+        await session.refresh(u)
+        access_token = create_access_token(subject=u.id)
         return TokenResponse(access_token=access_token)
