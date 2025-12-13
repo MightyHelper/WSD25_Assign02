@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     FILE_STORAGE: FileStorageOption = FileStorageOption.db  # options validated via enum
     APP_ENV: str = "development"
 
-    model_config = ConfigDict(env_file=".env")
+    # allow extra env vars (so project-level .env with PEPPER/STORAGE_KIND doesn't fail)
+    model_config = ConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()

@@ -1,19 +1,27 @@
-# Assignment 2 - Project scaffold
+# Project (dev)
 
-This folder contains an async FastAPI project scaffold for Assignment 2.
+Development notes
 
-Quick start (using Docker Compose):
+- To run tests locally: python -m pytest
+- To run the app locally (dev):
+  - Ensure a `.env` exists with PEPPER set (for example: `PEPPER=dev-pepper`)
+  - Start with: python -m uvicorn app.main:app --reload
 
-```bash
-# copy .env.example → .env and edit values
-cp .env.example .env
+Docker
 
-docker compose up --build
-```
+- The included `docker-compose.yml` will start the app, MariaDB and Redis.
+- You must provide an environment variable `PEPPER` when running docker-compose. Example:
 
-The API will be available at http://localhost:8000 and docs at /docs
+  PEPPER=my-secret-pepper docker compose up --build
 
-Notes:
-- The scaffold uses async SQLAlchemy (aiomysql) and Redis (redis.asyncio).
-- For local development without Docker, configure a local MySQL instance and Redis and set `DATABASE_URL` and `REDIS_URL` in the environment.
+Seeding
+
+- A simple seeding script is provided at `scripts/seed.py`. Run it after the app DB is up to create sample authors/books and a user:
+
+  python scripts/seed.py
+
+Notes
+
+- Storage kind is configurable via `STORAGE_KIND` config (fs or db). Local dev defaults to `fs` (filesystem).
+- Cover images are stored either as blobs in DB or as files in `uploads/` and referenced by `book.cover_path`.
 

@@ -24,7 +24,8 @@ class Book(Base):
     isbn = Column(String(50), unique=True, nullable=True)
     title = Column(String(400), nullable=False)
     description = Column(Text, nullable=True)
-    cover = Column(LargeBinary, nullable=True)  # store cover image as blob
+    cover = Column(LargeBinary, nullable=True)  # store cover image as blob (DB storage)
+    cover_path = Column(String(400), nullable=True)  # filesystem path when using FS storage
     author = relationship("Author", back_populates="books")
 
 class Order(Base):

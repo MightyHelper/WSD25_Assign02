@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from app.db.models import Order, BookOrderItem, Book
 from app.db.base import get_session
+from ..security.dependencies import get_current_user
+from app.db.models import User
 
 router = APIRouter(prefix="/api/v1/orders", tags=["orders"])
 
@@ -25,13 +27,15 @@ class OrderOut(BaseModel):
     model_config = {"extra": "ignore", "from_attributes": True}
 
 @router.post("/{order_id}/items", response_model=ItemOut, status_code=201)
-async def set_order_item(order_id: str, item: ItemIn):
+async def set_order_item(order_id: str, item: ItemIn, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
         order = await session.get(Order, order_id)
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
         if order.paid:
             raise HTTPException(status_code=400, detail="Order already paid")
+        if order.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Forbidden")
         # ensure book exists
         b = await session.get(Book, item.book_id)
         if not b:
@@ -63,11 +67,13 @@ async def set_order_item(order_id: str, item: ItemIn):
         return ItemOut.model_validate(new)
 
 @router.post("/{order_id}/pay", response_model=OrderOut)
-async def pay_order(order_id: str):
+async def pay_order(order_id: str, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
         order = await session.get(Order, order_id)
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
+        if order.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Forbidden")
         if order.paid:
             raise HTTPException(status_code=400, detail="Order already paid")
         # simple validation: must have at least one item

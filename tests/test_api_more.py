@@ -1,17 +1,27 @@
 import uuid
 
 
+def auth_headers(client, username, password):
+    r = client.post("/api/v1/auth/login", json={"username": username, "password": password})
+    assert r.status_code == 200
+    token = r.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 def test_authors_reviews_comments_likes_orders_more(test_app):
     # setup user, author, book
     user_id = str(uuid.uuid4())
+    username = "user_more"
     author_id = str(uuid.uuid4())
     book_id = str(uuid.uuid4())
     review_id = str(uuid.uuid4())
     comment_id = str(uuid.uuid4())
     order_id = str(uuid.uuid4())
 
-    r = test_app.post("/api/v1/users/", json={"id": user_id, "username": "user_more", "email": f"{user_id}@example.com", "password": "pw"})
+    r = test_app.post("/api/v1/users/", json={"id": user_id, "username": username, "email": f"{user_id}@example.com", "password": "pw"})
     assert r.status_code == 201
+
+    headers = auth_headers(test_app, username, "pw")
 
     r = test_app.post("/api/v1/authors/", json={"id": author_id, "name": "Auth"})
     assert r.status_code == 201
@@ -42,11 +52,11 @@ def test_authors_reviews_comments_likes_orders_more(test_app):
     assert any(c["id"] == comment_id for c in r.json())
 
     # like comment
-    r = test_app.post(f"/api/v1/reviews/{review_id}/comments/{comment_id}/like", params={"user_id": user_id})
+    r = test_app.post(f"/api/v1/reviews/{review_id}/comments/{comment_id}/like", headers=headers)
     assert r.status_code == 200
 
     # unlike comment
-    r = test_app.delete(f"/api/v1/reviews/{review_id}/comments/{comment_id}/like", params={"user_id": user_id})
+    r = test_app.delete(f"/api/v1/reviews/{review_id}/comments/{comment_id}/like", headers=headers)
     assert r.status_code == 200
 
     # create order
@@ -54,11 +64,10 @@ def test_authors_reviews_comments_likes_orders_more(test_app):
     assert r.status_code == 201
 
     # add item
-    r = test_app.post(f"/api/v1/orders/{order_id}/items", json={"book_id": book_id, "quantity": 2})
+    r = test_app.post(f"/api/v1/orders/{order_id}/items", json={"book_id": book_id, "quantity": 2}, headers=headers)
     assert r.status_code == 201
 
     # pay order
-    r = test_app.post(f"/api/v1/orders/{order_id}/pay")
+    r = test_app.post(f"/api/v1/orders/{order_id}/pay", headers=headers)
     assert r.status_code == 200
     assert r.json()["paid"] is True
-

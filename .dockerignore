@@ -1,0 +1,44 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+.env
+.env.*
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+coverage_html/
+
+# SQLite DBs used by tests/dev
+test_db.sqlite
+dev.db
+*.sqlite
+
+# Logs
+*.log
+
+# Editor/temp
+.vscode/
+.idea/
+*.swp
+
+# Docker, build, and distribution
+build/
+dist/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Uploaded files
+uploads/
+
+# Git
+.git
+.gitignore
+
