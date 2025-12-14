@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 from app.db.models import User
-from app.db.base import get_session
+from app.storage.base import get_session
 from app.security.password import hash_password
+from app.security.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
@@ -20,7 +21,7 @@ class UserOut(BaseModel):
     model_config = {"extra": "ignore", "from_attributes": True}
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def create_user(user_in: UserIn):
+async def create_user(user_in: UserIn, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
         u = User(id=user_in.id, username=user_in.username, email=user_in.email, password_hash=hash_password(user_in.password))
         session.add(u)

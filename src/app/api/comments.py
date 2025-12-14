@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from ..db.models import Comment
-from ..db.base import get_session
+from app.storage.base import get_session
+from app.security.dependencies import get_current_user
+from app.db.models import User
 
 router = APIRouter(prefix="/api/v1/comments", tags=["comments"])
 
@@ -22,7 +24,7 @@ class CommentOut(BaseModel):
     model_config = {"extra": "ignore", "from_attributes": True}
 
 @router.post("/", response_model=CommentOut, status_code=status.HTTP_201_CREATED)
-async def create_comment(c: CommentIn):
+async def create_comment(c: CommentIn, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
         cm = Comment(id=c.id, user_id=c.user_id, review_id=c.review_id, content=c.content)
         session.add(cm)
@@ -47,4 +49,3 @@ async def delete_comment(comment_id: str):
         await session.delete(cm)
         await session.commit()
         return {"ok": True}
-

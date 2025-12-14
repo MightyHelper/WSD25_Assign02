@@ -1,4 +1,3 @@
-import sqlalchemy as sa
 from sqlalchemy import String, Column, Integer, Boolean, LargeBinary, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from .base import Base

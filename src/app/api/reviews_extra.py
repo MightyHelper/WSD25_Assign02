@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 from app.db.models import UserBookReview, Book
-from app.db.base import get_session
+from app.storage.base import get_session
 
 router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
 

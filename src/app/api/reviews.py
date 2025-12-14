@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from ..db.models import UserBookReview
-from ..db.base import get_session
+from app.storage.base import get_session
+from app.security.dependencies import get_current_user
+from app.db.models import User
 
 router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
 
@@ -24,7 +26,7 @@ class ReviewOut(BaseModel):
     model_config = {"extra": "ignore", "from_attributes": True}
 
 @router.post("/", response_model=ReviewOut, status_code=status.HTTP_201_CREATED)
-async def create_review(r: ReviewIn):
+async def create_review(r: ReviewIn, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
         rev = UserBookReview(id=r.id, book_id=r.book_id, user_id=r.user_id, title=r.title, content=r.content)
         session.add(rev)
@@ -49,4 +51,3 @@ async def delete_review(review_id: str):
         await session.delete(rev)
         await session.commit()
         return {"ok": True}
-

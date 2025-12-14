@@ -1,16 +1,15 @@
-from ..config import settings, FileStorageOption
-from .db_storage import DBBlobStorage
-from .fs_storage import FileSystemStorage
-from .base import BlobStorage
+from ..config import settings, FileStorageOption, StorageKind
+from app.storage.db_storage import DBBlobStorage
+from app.storage.fs_storage import FileSystemStorage
+from app.storage.base import BlobStorage
 
 _storage_instance: BlobStorage | None = None
 
 def _create_storage() -> BlobStorage:
-    if settings.FILE_STORAGE == FileStorageOption.db:
+    if settings.STORAGE_KIND == StorageKind.DB:
         return DBBlobStorage()
-    if settings.FILE_STORAGE == FileStorageOption.filesystem:
+    if settings.STORAGE_KIND == StorageKind.FS:
         return FileSystemStorage()
-    # s3 not implemented yet -> fallback to DB storage
     return DBBlobStorage()
 
 def get_storage_instance() -> BlobStorage:

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from pydantic import BaseModel
-from app.db.models import Book
-from app.db.base import get_session
+from app.db.models import Book, User
+from app.storage.base import get_session
 from ..storage import get_storage_dep, BlobStorage
 from app.redis_client import get_redis_dep
+from app.security.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/v1/books", tags=["books"])
 
@@ -28,7 +29,7 @@ class BookOut(BaseModel):
     model_config = {"extra": "ignore", "from_attributes": True}
 
 @router.post("/", response_model=BookOut, status_code=status.HTTP_201_CREATED)
-async def create_book(book_in: BookIn):
+async def create_book(book_in: BookIn, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
         b = Book(id=book_in.id, title=book_in.title, author_id=book_in.author_id, isbn=book_in.isbn, description=book_in.description)
         session.add(b)

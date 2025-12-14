@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import List
 from app.db.models import User, UserBookLikes
-from app.db.base import get_session
+from app.storage.base import get_session
 from ..security.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])

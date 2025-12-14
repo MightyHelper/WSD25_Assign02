@@ -5,20 +5,20 @@ from contextlib import asynccontextmanager
 
 from .config import settings
 from .constants import API_TITLE, API_DESCRIPTION, API_VERSION
-from .db.base import init_db, close_db
+from app.storage.base import init_db, close_db
 from .redis_client import init_redis, close_redis
 
 from .middleware.logging_middleware import LoggingMiddleware
 from .api.auth_router import router as auth_router
 
-# Include fne package routers
-from fne.api.books import router as books_router
-from fne.api.authors import router as authors_router
-from fne.api.users import router as users_router
-from fne.api.reviews import router as reviews_router
-from fne.api.comments import router as comments_router
-from fne.api.likes import router as likes_router
-from fne.api.orders import router as orders_router
+# Include app package routers
+from app.api.books import router as books_router
+from app.api.authors import router as authors_router
+from app.api.users import router as users_router
+from app.api.reviews import router as reviews_router
+from app.api.comments import router as comments_router
+from app.api.likes import router as likes_router
+from app.api.orders import router as orders_router
 
 # include our extra routers (partial implementations from HandIn)
 from .api.books_extra import router as books_extra_router
@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
         await init_db(dsn)
         # ensure tables exist (useful for sqlite in tests)
         try:
-            from .db.base import create_tables
+            from app.storage.base import create_tables
             await create_tables()
         except Exception:
             logger.exception("Failed to create DB tables during startup")
