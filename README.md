@@ -1,74 +1,78 @@
-# Project (dev)
+# Project
 
-Development notes
+A production-minded FastAPI + SQLAlchemy project scaffold implementing the Assignment 2 requirements (DB-backed REST API, JWT auth, RBAC, pagination/search/sort, OpenAPI docs, migrations & seeds, logging, rate limiting, and tests).
 
-This project contains a FastAPI application plus test-suite. The README below documents how to run the tests, which environment variables matter during development and testing, and a few notes about DB lifecycle and storage.
+This repository contains a complete server prototype and developer tooling aimed at delivering a deployable service for the assignment.
+Status
+- Purpose: Teaching / assignment scaffold and reference implementation.
+- Stage: Established prototype with application structure, standards, and tooling in place (migrations, tests, docs). You may need to adapt a few environment-specific values before running.
 
-## Quick start - run the tests
+Key features
+- FastAPI-based HTTP API with automatic OpenAPI/Swagger documentation.
+- SQLAlchemy ORM with Alembic migrations (MySQL target by default).
+- JWT authentication with role-based access control (ROLE_USER, ROLE_ADMIN minimum).
+- Standardized JSON error envelope and centralized exception handling (see `GUIDELINES.md`).
+- Pagination, sorting and search utilities for list endpoints.
+- Request/response logging and optional rate-limiting middleware.
+- Docker-friendly (multi-stage Dockerfile) and test suite (pytest).
+- Postman collection and seed scripts expected under `postman/` and `scripts/` (see repository root).
+- Metrics using Prometheus!
+- Redis caching support!
 
-1. Open PowerShell and activate the project's virtualenv (the environment may already be active in some setups).
-2. Change to the project directory (if not already there):
+Quickstart (local development)
 
-   ```powershell
-   cd C:\Users\User\Nextcloud\fede\Github\JBNU\WSD\Assignment02\project
-   ```
+1) Prerequisites
+- Python, tested with 3.13.9
+- Recommended: create an isolated virtual environment.
 
-3. Run the full test suite:
+2) Create & activate a venv
+```sh
+uv sync
+```
 
-   ```powershell
-   pytest -q
-   ```
+4) Environment configuration
+- Configure settings from app.config.Settings
+- You may use a `.env` file
+- Env vars take precedence over `.env` values
 
-## Notes about environment variables used in tests and development
+5) Running the app with Docker (quick)
+- The repository contains a multi-stage `Dockerfile` and `docker-compose.yml` in the `project/` folder. Build and run with:
+```
+docker-compose up --build
+```
+This will start the application and the database (if `docker-compose.yml` wires one up).
 
-- `PEPPER` (required in production-like flows) — application uses a PEPPER secret when hashing passwords. Tests set a safe default (`tests-pepper`) automatically in `tests/conftest.py` to make the test-suite runnable out of the box, but for any manual runs you may want to set it explicitly (for example when running the app with uvicorn):
+Seed the DB: Run `python scripts/seed_db.py`. It expects the DB creds/url from the env vars or `.env` file.
 
-  ```powershell
-  $env:PEPPER = "your-secret-pepper"
-  ```
+Seeding will also require the ADMIN user, password and email to create as this depends on each environment.
 
-- `DATABASE_URL` — defaults to an sqlite async URL when not provided. Example (for a local sqlite test DB):
+API documentation & Postman
+- OpenAPI/Swagger UI: `/docs` or `/redoc` (configured in the app factory). Example:
+  - http://localhost:8080/docs
+- Postman collection: check the `postman/` directory for `<project>.postman_collection.json` and an environment file.
+  - The collection includes pre-request scripts to store tokens and a few tests; configure the base URL in the environment.
 
-  ```powershell
-  $env:DATABASE_URL = "sqlite+aiosqlite:///./test_db.sqlite"
-  ```
+Authentication & example accounts
+- Auth endpoints (examples expected):
+  - `POST /auth/login` – produce access token (JWT)
+  - `POST /auth/refresh` – refresh token
+  - `POST /auth/logout` – invalidate token / logical logout
 
-- `REDIS_URL` — tests set this to empty by default to avoid trying to connect to Redis. If you need Redis for integration runs, set this to your Redis URL.
+Testing
+- Run the test suite with pytest (or use tox if configured):
+```
+pytest -q
+```
+- Tests cover authentication flows, authorization checks (401/403), validation errors (400/422), CRUD endpoints, and some integration paths.
 
-## Database / test lifecycle behavior (important)
+Health checks & monitoring
+- Health endpoint (no auth): `GET /health` → returns 200 and app metadata (version, build time).
+- Logging: request and response summary logs include method, path, status, and latency.
 
-- The test and application startup logic ensures the DB tables exist, but it does *not* drop tables on app startup. This is intentional so tests that create DB fixtures before creating the FastAPI app (a common pattern in these tests) don't lose their data when the app starts.
-- If you need a completely clean DB before a test run, remove the `test_db.sqlite` file (or run a dedicated script that drops tables). The test fixtures and `create_tables` helper will create missing tables.
-
-## Running the app locally (dev)
-
-- To run the app interactively (development) with uvicorn:
-
-  ```powershell
-  # set PEPPER in your environment first
-  $env:PEPPER = "dev-pepper"
-  python -m uvicorn app.main:create_app --reload
-  ```
-
-- Alternatively you can run the app via docker-compose (the included `docker-compose.yml` starts the app plus MariaDB and Redis). When using docker-compose ensure you provide `PEPPER` in the environment for the container.
-
-## Storage behavior
-
-- Storage kind is configurable via `STORAGE_KIND` (`fs` or `db`). Local dev defaults to `fs`.
-- `fs` mode stores cover images on the filesystem under `uploads/` and stores a `book.cover_path` value.
-- `db` mode stores raw blobs on the `books.cover` DB column.
-
-## Tests and repository hygiene
-
-- Debug/inspection scripts that were used during development have been cleaned up or converted to placeholders. There remain a set of small helper scripts under `scripts/` used for local inspection; feel free to remove them if you prefer a minimal repository.
-- I added auth-focused tests (positive and negative cases) to ensure authentication edge-cases are covered (register/login, token decoding, tampered and expired tokens, wrong scheme, invalid signatures).
-
-## If something fails
-
-- First, ensure the virtualenv is active and dependencies are installed. If pytest is missing, install the project's test requirements.
-- Confirm you are running tests from the `project` directory.
-- If DB state is causing issues, remove `test_db.sqlite` to force a fresh DB on next test run.
-
-## Contact
-
-- If you want, I can tidy the helper scripts, create a small `Makefile` or `invoke` tasks to simplify running tests and cleaning state, or open a commit/PR with these changes.
+Project layout (high-level)
+- `src/` - application package (FastAPI app, routers, schemas, services, db models)
+- `alembic/` - database migrations (Alembic)
+- `scripts/` - helpers for migration/seeding and maintenance
+- `postman/` - Postman collection(s)
+- `tests/` - pytest test suite
+- `Dockerfile`, `docker-compose.yml`, `pyproject.toml`, `pytest.ini`, `requirements-test.txt` - tooling
