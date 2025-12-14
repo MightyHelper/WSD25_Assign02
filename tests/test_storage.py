@@ -6,6 +6,8 @@ from app.db.base import get_session
 from app.security.dependencies import get_current_user
 import uuid
 
+from project.tests.conftest import admin_user
+
 
 async def _create_author_and_book():
     async with get_session() as session:
@@ -18,7 +20,7 @@ async def _create_author_and_book():
         return b
 
 
-def test_storage_fs_upload_and_download(test_app, normal_user):
+def test_storage_fs_upload_and_download(test_app, normal_user, admin_user):
     os.environ["STORAGE_KIND"] = "fs"
     # create author/book in DB
     book = __import__('asyncio').run(_create_author_and_book())
@@ -29,11 +31,10 @@ def test_storage_fs_upload_and_download(test_app, normal_user):
 
     app = create_app()
     # bypass auth for tests by overriding dependency
-    app.dependency_overrides[get_current_user] = lambda: normal_user[0]
     data = b"hello-cover-fs"
 
     with __import__('fastapi').testclient.TestClient(app) as client:
-        r = client.post(f"/api/v1/books/{book.id}/cover", content=data, headers={"content-type": "application/octet-stream"})
+        r = client.post(f"/api/v1/books/{book.id}/cover", content=data, headers={"content-type": "application/octet-stream", "Authorization": admin_user[1]['Authorization']})
         assert r.status_code == 200
         # verify that book record now points to a file or contains blob
         async def check():
@@ -48,21 +49,17 @@ def test_storage_fs_upload_and_download(test_app, normal_user):
             assert cover_blob == data
 
 
-def test_storage_db_upload_and_download(test_app, normal_user):
+def test_storage_db_upload_and_download(test_app, normal_user, admin_user):
     os.environ["STORAGE_KIND"] = "db"
     # create author/book in DB
     book = __import__('asyncio').run(_create_author_and_book())
 
-    from app.config import settings as app_settings
-    app_settings.DATABASE_URL = os.environ.get("DATABASE_URL")
-
     app = create_app()
     # bypass auth for tests
-    app.dependency_overrides[get_current_user] = lambda: normal_user[0]
     data = b"hello-cover-db"
 
     with __import__('fastapi').testclient.TestClient(app) as client:
-        r = client.post(f"/api/v1/books/{book.id}/cover", content=data, headers={"content-type": "application/octet-stream"})
+        r = client.post(f"/api/v1/books/{book.id}/cover", content=data, headers={"content-type": "application/octet-stream", "Authorization": admin_user[1]['Authorization']})
         assert r.status_code == 200
         async def check2():
             async with get_session() as session:

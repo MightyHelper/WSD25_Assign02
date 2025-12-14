@@ -25,7 +25,7 @@ def test_upload_cover_empty_body_returns_400(test_app, admin_user: UserWithLogin
     book_id = str(uuid.uuid4())
     r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "EmptyCover", "author_id": None}, headers=admin_user[1])
     assert r.status_code == 201
-    r = test_app.post(f"/api/v1/books/{book_id}/cover", headers=headers, content=b"")
+    r = test_app.post(f"/api/v1/books/{book_id}/cover", headers=admin_user[1], content=b"")
     assert r.status_code == 400
 
 
