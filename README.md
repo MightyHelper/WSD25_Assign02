@@ -10,16 +10,25 @@ Status
 Key features
 - FastAPI-based HTTP API with automatic OpenAPI/Swagger documentation.
 - SQLAlchemy ORM with Alembic migrations (MySQL target by default).
-- JWT authentication with role-based access control (ROLE_USER, ROLE_ADMIN minimum).
-- Standardized JSON error envelope and centralized exception handling (see `GUIDELINES.md`).
+- JWT authentication with role-based access control (ROLE_USER=0, ROLE_ADMIN=1).
 - Pagination, sorting and search utilities for list endpoints.
-- Request/response logging and optional rate-limiting middleware.
 - Docker-friendly (multi-stage Dockerfile) and test suite (pytest).
-- Postman collection and seed scripts expected under `postman/` and `scripts/` (see repository root).
 - Metrics using Prometheus!
 - Redis caching support!
 
-Quickstart (local development)
+## Playground
+
+See http://113.198.66.75:18083/docs for a live demo of the API.
+
+- Health: http://113.198.66.75:18083/health
+- MysqlDB at: http://113.198.66.75:10083/
+- See metrics at: http://113.198.66.75:18083/metrics
+- Grafana: http://localhost:3000/goto/bf730c2c875kwd?orgId=1
+
+Credentials provided upon reasonable request to federicowilliamson@hotmail.co.uk.
+
+
+## Quickstart (local development)
 
 1) Prerequisites
 - Python, tested with 3.13.9
@@ -30,30 +39,32 @@ Quickstart (local development)
 uv sync
 ```
 
-4) Environment configuration
+3) Environment configuration
 - Configure settings from app.config.Settings
 - You may use a `.env` file
 - Env vars take precedence over `.env` values
 
-5) Running the app with Docker (quick)
+4) Running the app with Docker (quick)
 - The repository contains a multi-stage `Dockerfile` and `docker-compose.yml` in the `project/` folder. Build and run with:
 ```
 docker-compose up --build
 ```
 This will start the application and the database (if `docker-compose.yml` wires one up).
 
-Seed the DB: Run `python scripts/seed_db.py`. It expects the DB creds/url from the env vars or `.env` file.
+5) Seed the DB
+
+Run `python scripts/seed_db.py`. It expects the DB creds/url from the env vars or `.env` file.
 
 Seeding will also require the ADMIN_USER, ADMIN_PASSWORD and ADMIN_EMAIL via en to create as this depends on each environment.
 
-API documentation & Postman
+## API documentation & Postman
 - OpenAPI/Swagger UI: `/docs` or `/redoc` (configured in the app factory). Example:
   - http://localhost:8080/docs
 - Postman collection: check the `postman/` directory for `<project>.postman_collection.json` and an environment file.
   - The collection includes pre-request scripts to store tokens and a few tests; configure the base URL in the environment.
 
-Authentication & example accounts
-- Auth endpoints (examples expected):
+## Authentication
+- Auth endpoints:
   - `POST /auth/login` – produce access token (JWT)
   - `POST /auth/refresh` – refresh token
   - `POST /auth/logout` – invalidate token / logical logout
@@ -69,10 +80,3 @@ Health checks & monitoring
 - Health endpoint (no auth): `GET /health` → returns 200 and app metadata (version, build time).
 - Logging: request and response summary logs include method, path, status, and latency.
 
-Project layout (high-level)
-- `src/` - application package (FastAPI app, routers, schemas, services, db models)
-- `alembic/` - database migrations (Alembic)
-- `scripts/` - helpers for migration/seeding and maintenance
-- `postman/` - Postman collection(s)
-- `tests/` - pytest test suite
-- `Dockerfile`, `docker-compose.yml`, `pyproject.toml`, `pytest.ini`, `requirements-test.txt` - tooling
