@@ -1,5 +1,5 @@
 import uuid
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def auth_headers(client, username, password):

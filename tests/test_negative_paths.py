@@ -1,5 +1,5 @@
 import uuid
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def test_invalid_login(test_app):

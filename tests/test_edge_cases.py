@@ -1,6 +1,6 @@
 import uuid
 from app.security.jwt import create_access_token
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def auth_headers_for_subject(client, subject, password="pw"):

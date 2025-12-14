@@ -4,7 +4,7 @@ import asyncio
 from app.security.jwt import decode_token
 from app.db.base import get_session
 from app.db.models import User
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def test_register_and_decode_token(test_app):

@@ -1,5 +1,5 @@
 import uuid
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def test_create_get_delete_book(test_app, admin_user: UserWithLogin):

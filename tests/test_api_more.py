@@ -1,6 +1,6 @@
 import uuid
 
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 

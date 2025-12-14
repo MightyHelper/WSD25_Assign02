@@ -5,7 +5,7 @@ import pytest
 from app.storage import FSStorage, DBStorage, get_storage
 from app.redis_client import get_redis, _NullRedis
 from app.db.base import get_session
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def test_redis_null_impl_returns_null():

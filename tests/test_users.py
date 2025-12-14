@@ -1,4 +1,4 @@
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def test_create_get_user(test_app, normal_user: UserWithLogin):

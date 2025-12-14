@@ -1,6 +1,6 @@
 import uuid
 from app.config import settings, StorageKind
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def unique_uname():

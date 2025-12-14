@@ -1,5 +1,5 @@
 import uuid
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def test_review_comment_like_order_flow(test_app, admin_user: UserWithLogin, normal_user: UserWithLogin):

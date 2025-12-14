@@ -2,7 +2,7 @@ import uuid
 from datetime import timedelta
 
 from app.security.jwt import create_access_token
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def test_missing_auth_returns_401(test_app):

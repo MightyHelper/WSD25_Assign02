@@ -1,4 +1,4 @@
-from project.tests.conftest import UserWithLogin
+from conftest import UserWithLogin
 
 
 def test_user_type_default_and_response(test_app, normal_user: UserWithLogin):
