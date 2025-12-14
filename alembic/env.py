@@ -19,7 +19,7 @@ if config.config_file_name is not None:
 # Import the app's Base metadata
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from app.storage.base import Base
+from app.db.base import Base
 
 target_metadata = Base.metadata
 

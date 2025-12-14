@@ -44,7 +44,7 @@ This will start the application and the database (if `docker-compose.yml` wires 
 
 Seed the DB: Run `python scripts/seed_db.py`. It expects the DB creds/url from the env vars or `.env` file.
 
-Seeding will also require the ADMIN user, password and email to create as this depends on each environment.
+Seeding will also require the ADMIN_USER, ADMIN_PASSWORD and ADMIN_EMAIL via en to create as this depends on each environment.
 
 API documentation & Postman
 - OpenAPI/Swagger UI: `/docs` or `/redoc` (configured in the app factory). Example:
