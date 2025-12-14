@@ -66,3 +66,10 @@ async def get_current_user_optional(creds: HTTPAuthorizationCredentials = Depend
         return None
     u = await _get_user_by_sub(sub)
     return u
+
+async def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if getattr(current_user, 'type', 0) != 1:
+        logger.warning("Non-admin user id=%s attempted to access admin-only resource", getattr(current_user, 'id', None))
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
+    logger.debug("Admin user id=%s access granted", getattr(current_user, 'id', None))
+    return current_user

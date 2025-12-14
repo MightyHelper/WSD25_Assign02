@@ -1,34 +1,27 @@
 import os
-from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.db.base import init_db, create_tables
 from app.db.models import Author, Book
 from app.db.base import get_session
-from app.security.password import hash_password
 from app.security.dependencies import get_current_user
 import uuid
 
-# helper used in tests to create DB objects
-async def create_initial_data(username: str):
-    await init_db(os.environ.get("DATABASE_URL"))
-    await create_tables()
+
+async def _create_author_and_book():
     async with get_session() as session:
         a = Author(id=str(uuid.uuid4()), name="Author")
         b = Book(id=str(uuid.uuid4()), title="Book", author_id=a.id)
         session.add(a)
         session.add(b)
-        from app.db.models import User
-        u = User(id=str(uuid.uuid4()), username=username, email=f"{username}@example.com", password_hash=hash_password("pass"))
-        session.add(u)
         await session.commit()
         await session.refresh(b)
-        return b, u
+        return b
 
-def test_storage_fs_upload_and_download():
+
+def test_storage_fs_upload_and_download(test_app, normal_user):
     os.environ["STORAGE_KIND"] = "fs"
-    uname = f"storage_{uuid.uuid4().hex[:8]}"
-    book, user = __import__('asyncio').run(create_initial_data(uname))
+    # create author/book in DB
+    book = __import__('asyncio').run(_create_author_and_book())
 
     # make sure FastAPI app uses the same DATABASE_URL
     from app.config import settings as app_settings
@@ -36,10 +29,10 @@ def test_storage_fs_upload_and_download():
 
     app = create_app()
     # bypass auth for tests by overriding dependency
-    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[get_current_user] = lambda: normal_user[0]
     data = b"hello-cover-fs"
 
-    with TestClient(app) as client:
+    with __import__('fastapi').testclient.TestClient(app) as client:
         r = client.post(f"/api/v1/books/{book.id}/cover", content=data, headers={"content-type": "application/octet-stream"})
         assert r.status_code == 200
         # verify that book record now points to a file or contains blob
@@ -54,20 +47,21 @@ def test_storage_fs_upload_and_download():
         else:
             assert cover_blob == data
 
-def test_storage_db_upload_and_download():
+
+def test_storage_db_upload_and_download(test_app, normal_user):
     os.environ["STORAGE_KIND"] = "db"
-    uname2 = f"storage_{uuid.uuid4().hex[:8]}"
-    book, user = __import__('asyncio').run(create_initial_data(uname2))
+    # create author/book in DB
+    book = __import__('asyncio').run(_create_author_and_book())
 
     from app.config import settings as app_settings
     app_settings.DATABASE_URL = os.environ.get("DATABASE_URL")
 
     app = create_app()
     # bypass auth for tests
-    app.dependency_overrides[get_current_user] = lambda: user
+    app.dependency_overrides[get_current_user] = lambda: normal_user[0]
     data = b"hello-cover-db"
 
-    with TestClient(app) as client:
+    with __import__('fastapi').testclient.TestClient(app) as client:
         r = client.post(f"/api/v1/books/{book.id}/cover", content=data, headers={"content-type": "application/octet-stream"})
         assert r.status_code == 200
         async def check2():

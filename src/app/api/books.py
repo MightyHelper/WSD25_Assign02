@@ -9,6 +9,7 @@ from app.db.models import Book, UserBookLikes, User
 from app.redis_client import get_redis_dep
 from app.storage import get_storage
 from ..security.dependencies import get_current_user
+from app.schemas.pagination import PagedResponse
 
 router = APIRouter(prefix="/api/v1/books", tags=["books"])
 logger = logging.getLogger('app.api.books')
@@ -111,7 +112,7 @@ async def delete_book(book_id: str):
         logger.info("Book deleted id=%s", book_id)
         return {"ok": True}
 
-@router.get("/", response_model=list[BookListOut])
+@router.get("/", response_model=PagedResponse[BookListOut])
 async def list_books(response: Response, page: int = 1, per_page: int = 20, title: str | None = None, author_id: str | None = None, sort_by: str | None = None, sort_dir: str = "asc"):
     async with get_session() as session:
         from sqlalchemy import select, asc, desc, func
@@ -129,10 +130,12 @@ async def list_books(response: Response, page: int = 1, per_page: int = 20, titl
             count_stmt = count_stmt.where(Book.author_id == author_id)
         total = int((await session.execute(count_stmt)).scalar_one())
         # Apply ordering if requested and valid
+        sort_clause = None
         if sort_by:
             # allow only attributes that exist on Book to avoid SQL injection
             if hasattr(Book, sort_by):
                 col = getattr(Book, sort_by)
+                sort_clause = f"{sort_by},{sort_dir}"
                 if sort_dir and sort_dir.lower().startswith("desc"):
                     stmt = stmt.order_by(desc(col))
                 else:
@@ -140,10 +143,21 @@ async def list_books(response: Response, page: int = 1, per_page: int = 20, titl
         stmt = stmt.offset((page - 1) * per_page).limit(per_page)
         res = await session.execute(stmt)
         books = res.scalars().all()
+        # set headers for backward compatibility
         response.headers["X-Total-Count"] = str(total)
         response.headers["X-Page"] = str(page)
         response.headers["X-Per-Page"] = str(per_page)
-        return [BookListOut.model_validate(b) for b in books]
+        # build envelope
+        import math
+        total_pages = math.ceil(total / per_page) if per_page else 0
+        return PagedResponse[BookListOut](
+            content=[BookListOut.model_validate(b) for b in books],
+            page=page,
+            size=per_page,
+            totalElements=total,
+            totalPages=total_pages,
+            sort=sort_clause,
+        )
 
 @router.patch("/{book_id}/like", response_model=LikeOut)
 async def like_book(book_id: str, wishlist: bool | None = None, favourite: bool | None = None, current_user: User = Depends(get_current_user)):
@@ -182,17 +196,6 @@ async def like_book(book_id: str, wishlist: bool | None = None, favourite: bool 
         # FastAPI will default status code 200; to return 201 we raise a Response with status
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=status.HTTP_201_CREATED, content=LikeOut.model_validate(new).model_dump())
-
-# Blob endpoints
-@router.put("/{book_id}/cover", status_code=status.HTTP_200_OK)
-async def upload_cover(book_id: str, request: Request, storage: BlobStorage = Depends(get_storage_dep)):
-    data = await request.body()
-    try:
-        await storage.save_blob(book_id, data)
-    except ValueError:
-        raise HTTPException(status_code=404, detail="Book not found")
-    return {"ok": True}
-
 
 @router.get("/{book_id}/cover")
 async def get_cover(book_id: str, storage: BlobStorage = Depends(get_storage_dep)):
@@ -267,21 +270,6 @@ async def patch_book(book_id: str, book_in: BookIn, current_user: User = Depends
         await session.commit()
         await session.refresh(b)
         return BookOut.model_validate(b)
-
-@router.get("/", response_model=list[BookListOut])
-async def list_books(page: int = 1, per_page: int = 20, title: str | None = None, author_id: str | None = None):
-    async with get_session() as session:
-        from sqlalchemy import select
-        stmt = select(Book)
-        if title:
-            # use ilike where supported by dialect; for sqlite this still works
-            stmt = stmt.where(Book.title.ilike(f"%{title}%"))
-        if author_id:
-            stmt = stmt.where(Book.author_id == author_id)
-        stmt = stmt.offset((page - 1) * per_page).limit(per_page)
-        res = await session.execute(stmt)
-        books = res.scalars().all()
-        return [BookListOut.model_validate(b) for b in books]
 
 @router.post("/{book_id}/cover")
 async def upload_cover(book_id: str, request: Request, current_user: User = Depends(get_current_user)):

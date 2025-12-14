@@ -1,9 +1,10 @@
 import uuid
+from project.tests.conftest import UserWithLogin
 
-def test_create_get_author(test_app, admin_headers):
+def test_create_get_author(test_app, admin_user: UserWithLogin):
     author_id = str(uuid.uuid4())
     payload = {"id": author_id, "name": "Author Test"}
-    r = test_app.post("/api/v1/authors/", json=payload, headers=admin_headers)
+    r = test_app.post("/api/v1/authors/", json=payload, headers=admin_user[1])
     assert r.status_code == 201
     assert r.json()["id"] == author_id
 

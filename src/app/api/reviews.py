@@ -1,11 +1,15 @@
 from fastapi import APIRouter, HTTPException, status, Response, Depends
 from pydantic import BaseModel
+from sqlalchemy import select, asc, desc, func
+import math
 
 from app.db.base import get_session
 from ..db.models import UserBookReview, Book, User, Comment, CommentLike
+from ..schemas.pagination import PagedResponse
 from ..security.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
+
 
 class ReviewIn(BaseModel):
     id: str
@@ -16,6 +20,7 @@ class ReviewIn(BaseModel):
 
     model_config = {"extra": "ignore", "from_attributes": True}
 
+
 class ReviewOut(BaseModel):
     id: str
     book_id: str
@@ -25,14 +30,20 @@ class ReviewOut(BaseModel):
 
     model_config = {"extra": "ignore", "from_attributes": True}
 
+
 @router.post("/", response_model=ReviewOut, status_code=status.HTTP_201_CREATED)
-async def create_review(r: ReviewIn):
+async def create_review(r: ReviewIn, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
+        # ensure current user is the review author
+        if current_user.type != 1:
+            if r.user_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Forbidden")
         rev = UserBookReview(id=r.id, book_id=r.book_id, user_id=r.user_id, title=r.title, content=r.content)
         session.add(rev)
         await session.commit()
         await session.refresh(rev)
         return ReviewOut.model_validate(rev)
+
 
 @router.get("/{review_id}", response_model=ReviewOut)
 async def get_review(review_id: str):
@@ -42,24 +53,37 @@ async def get_review(review_id: str):
             raise HTTPException(status_code=404, detail="Review not found")
         return ReviewOut.model_validate(rev)
 
+
 @router.delete("/{review_id}")
-async def delete_review(review_id: str):
+async def delete_review(review_id: str, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
         rev = await session.get(UserBookReview, review_id)
         if not rev:
             raise HTTPException(status_code=404, detail="Review not found")
+        if current_user.type != 1:
+            if rev.user_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Forbidden")
         await session.delete(rev)
         await session.commit()
         return {"ok": True}
 
-@router.get("/book/{book_id}", response_model=list[ReviewOut])
-async def list_reviews_for_book(response: Response, book_id: str, page: int = 1, per_page: int = 20, title: str | None = None, content: str | None = None, sort_by: str | None = None, sort_dir: str = "asc"):
+
+@router.get("/book/{book_id}", response_model=PagedResponse[ReviewOut])
+async def list_reviews_for_book(
+    response: Response,
+    book_id: str,
+    page: int = 1,
+    per_page: int = 20,
+    title: str | None = None,
+    content: str | None = None,
+    sort_by: str | None = None,
+    sort_dir: str = "asc",
+):
     async with get_session() as session:
         # ensure book exists
         b = await session.get(Book, book_id)
         if not b:
             raise HTTPException(status_code=404, detail="Book not found")
-        from sqlalchemy import select, asc, desc, func
         stmt = select(UserBookReview).where(UserBookReview.book_id == book_id)
         if title:
             stmt = stmt.where(UserBookReview.title.ilike(f"%{title}%"))
@@ -74,6 +98,7 @@ async def list_reviews_for_book(response: Response, book_id: str, page: int = 1,
         total = int((await session.execute(count_stmt)).scalar_one())
         if sort_by and hasattr(UserBookReview, sort_by):
             col = getattr(UserBookReview, sort_by)
+            sort_clause = f"{sort_by},{sort_dir}"
             if sort_dir and sort_dir.lower().startswith("desc"):
                 stmt = stmt.order_by(desc(col))
             else:
@@ -81,14 +106,25 @@ async def list_reviews_for_book(response: Response, book_id: str, page: int = 1,
         stmt = stmt.offset((page - 1) * per_page).limit(per_page)
         res = await session.execute(stmt)
         revs = res.scalars().all()
+        # headers
         response.headers["X-Total-Count"] = str(total)
         response.headers["X-Page"] = str(page)
         response.headers["X-Per-Page"] = str(per_page)
-        return [ReviewOut.model_validate(r) for r in revs]
+        # envelope
+        total_pages = math.ceil(total / per_page) if per_page else 0
+        return PagedResponse[ReviewOut](
+            content=[ReviewOut.model_validate(r) for r in revs],
+            page=page,
+            size=per_page,
+            totalElements=total,
+            totalPages=total_pages,
+            sort=sort_clause if "sort_clause" in locals() else None,
+        )
 
 
 class LikeOut(BaseModel):
     message: str
+
 
 @router.post("/{review_id}/comments/{comment_id}/like", response_model=LikeOut)
 async def like_comment(review_id: str, comment_id: str, current_user: User = Depends(get_current_user)):
@@ -107,6 +143,7 @@ async def like_comment(review_id: str, comment_id: str, current_user: User = Dep
         await session.commit()
         return LikeOut(message="Comment liked successfully.")
 
+
 @router.delete("/{review_id}/comments/{comment_id}/like", response_model=LikeOut)
 async def unlike_comment(review_id: str, comment_id: str, current_user: User = Depends(get_current_user)):
     """Authenticate and remove the current user's like for the comment."""
@@ -122,6 +159,7 @@ async def unlike_comment(review_id: str, comment_id: str, current_user: User = D
         await session.commit()
         return LikeOut(message="Comment like removed successfully.")
 
+
 class CommentOut(BaseModel):
     id: str
     user_id: str
@@ -130,24 +168,35 @@ class CommentOut(BaseModel):
 
     model_config = {"extra": "ignore", "from_attributes": True}
 
-@router.get("/{review_id}/comments", response_model=list[CommentOut])
+
+@router.get("/{review_id}/comments", response_model=PagedResponse[CommentOut])
 async def list_comments_for_review(response: Response, review_id: str, page: int = 1, per_page: int = 20):
     async with get_session() as session:
         # ensure review exists
         r = await session.get(UserBookReview, review_id)
         if not r:
             raise HTTPException(status_code=404, detail="Review not found")
-        from sqlalchemy import select, func
         stmt = select(Comment).where(Comment.review_id == review_id).offset((page - 1) * per_page).limit(per_page)
         # total count
         count_stmt = select(func.count()).select_from(Comment).where(Comment.review_id == review_id)
         total = int((await session.execute(count_stmt)).scalar_one())
         res = await session.execute(stmt)
         cms = res.scalars().all()
+        # headers
         response.headers["X-Total-Count"] = str(total)
         response.headers["X-Page"] = str(page)
         response.headers["X-Per-Page"] = str(per_page)
-        return [CommentOut.model_validate(c) for c in cms]
+        # envelope
+        total_pages = math.ceil(total / per_page) if per_page else 0
+        return PagedResponse[CommentOut](
+            content=[CommentOut.model_validate(c) for c in cms],
+            page=page,
+            size=per_page,
+            totalElements=total,
+            totalPages=total_pages,
+            sort=None,
+        )
+
 
 # Adapter: Allow creating comments under a review path (nested style)
 class CommentIn(BaseModel):
@@ -156,6 +205,7 @@ class CommentIn(BaseModel):
     content: str | None = None
 
     model_config = {"extra": "ignore", "from_attributes": True}
+
 
 @router.post("/{review_id}/comments", response_model=CommentOut, status_code=201)
 async def create_comment_under_review(review_id: str, c: CommentIn):

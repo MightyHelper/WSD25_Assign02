@@ -4,6 +4,7 @@ import asyncio
 from app.security.jwt import decode_token
 from app.db.base import get_session
 from app.db.models import User
+from project.tests.conftest import UserWithLogin
 
 
 def test_register_and_decode_token(test_app):
@@ -22,21 +23,14 @@ def test_register_and_decode_token(test_app):
     asyncio.run(_check())
 
 
-def test_login_with_username_and_email(test_app):
-    uid = str(uuid.uuid4())
-    username = "tlogin"
-    email = f"{uid}@example.com"
-    pwd = "mypass"
-    r = test_app.post("/api/v1/users/", json={"id": uid, "username": username, "email": email, "password": pwd})
-    assert r.status_code == 201
-
-    r1 = test_app.post("/api/v1/auth/login", json={"username": username, "password": pwd})
+def test_login_with_username_and_email(test_app, normal_user: UserWithLogin):
+    r1 = test_app.post("/api/v1/auth/login", json={"username": normal_user[0].username, "password": "userpw"})
     assert r1.status_code == 200
-    r2 = test_app.post("/api/v1/auth/login", json={"username": email, "password": pwd})
+    r2 = test_app.post("/api/v1/auth/login", json={"username": normal_user[0].email, "password": "userpw"})
     assert r2.status_code == 200
 
     payload = decode_token(r1.json()["access_token"])
-    assert payload.get("sub") == uid
+    assert payload.get("sub") == normal_user[0].id
 
 
 def test_password_pepper_effect(monkeypatch):

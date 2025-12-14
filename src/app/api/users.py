@@ -2,9 +2,13 @@ from fastapi import APIRouter, HTTPException, status, Depends, Response
 from pydantic import BaseModel, EmailStr
 from app.db.models import User
 from app.db.base import get_session
+from app.schemas.pagination import PagedResponse
 from app.security.password import hash_password
-from app.security.dependencies import get_current_user, get_current_user_optional
+from app.db.models import UserBookLikes
+from sqlalchemy import select, asc, desc, func
+from app.security.dependencies import get_current_user, get_current_admin_user
 import logging
+import math
 
 logger = logging.getLogger('app.api.users')
 
@@ -35,31 +39,20 @@ class LikeOut(BaseModel):
     model_config = {"extra": "ignore", "from_attributes": True}
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def create_user(user_in: UserIn, current_user: User | None = Depends(get_current_user_optional)):
+async def create_user(user_in: UserIn, current_user: User = Depends(get_current_admin_user)):
     """Register or create a new user.
     If 'type' is provided and is not 0, the caller must be an admin (type==1).
     Otherwise, public registration creates normal users with type=0.
     """
-    # enforce admin-only creation for admin-type users
-    if user_in.type is not None and user_in.type != 0:
-        # must be authenticated and admin
-        if not current_user or getattr(current_user, 'type', 0) != 1:
-            logger.warning("Unauthorized attempt to create user with type=%s by %s", user_in.type, getattr(current_user, 'id', None))
-            raise HTTPException(status_code=403, detail="Admin privileges required to create this user type")
-        new_type = int(user_in.type)
-    else:
-        new_type = 0
-
     async with get_session() as session:
         # ensure username/email unique
-        from sqlalchemy import select
         stmt = select(User).where((User.username == user_in.username) | (User.email == user_in.email))
         res = await session.execute(stmt)
         existing = res.scalars().first()
         if existing:
             logger.info("Attempt to create user with existing username/email=%s/%s", user_in.username, user_in.email)
             raise HTTPException(status_code=400, detail="Username or email already in use")
-        u = User(id=user_in.id, username=user_in.username, email=user_in.email, password_hash=hash_password(user_in.password), type=new_type)
+        u = User(id=user_in.id, username=user_in.username, email=user_in.email, password_hash=hash_password(user_in.password), type=user_in.type)
         session.add(u)
         await session.commit()
         await session.refresh(u)
@@ -80,12 +73,54 @@ async def get_user(user_id: str):
             raise HTTPException(status_code=404, detail="User not found")
         logger.debug("get_user returning user id=%s username=%s", u.id, u.username)
         return UserOut.model_validate(u)
+@router.get("/", response_model=PagedResponse[UserOut])
+async def list_users(response: Response, page: int = 1, per_page: int = 20, username: str | None = None, email: str | None = None, sort_by: str | None = None, sort_dir: str = "asc", admin_user: User = Depends(get_current_admin_user)):
+    async with get_session() as session:
+        stmt = select(User)
+        if username:
+            stmt = stmt.where(User.username.ilike(f"%{username}%"))
+        if email:
+            stmt = stmt.where(User.email.ilike(f"%{email}%"))
+        # total count
+        count_stmt = select(func.count()).select_from(User)
+        if username:
+            count_stmt = count_stmt.where(User.username.ilike(f"%{username}%"))
+        if email:
+            count_stmt = count_stmt.where(User.email.ilike(f"%{email}%"))
+        res = await session.execute(count_stmt)
+        total = int(res.scalar_one())
+        # ordering
+        sort_clause = None
+        if sort_by and hasattr(User, sort_by):
+            col = getattr(User, sort_by)
+            sort_clause = f"{sort_by},{sort_dir}"
+            if sort_dir and sort_dir.lower().startswith("desc"):
+                stmt = stmt.order_by(desc(col))
+            else:
+                stmt = stmt.order_by(asc(col))
+        stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+        res = await session.execute(stmt)
+        users = res.scalars().all()
+        if response is not None:
+            response.headers["X-Total-Count"] = str(total)
+            response.headers["X-Page"] = str(page)
+            response.headers["X-Per-Page"] = str(per_page)
+        # envelope
+        total_pages = math.ceil(total / per_page) if per_page else 0
+        envelope = {
+            "content": [UserOut.model_validate(u).model_dump() for u in users],
+            "page": page,
+            "size": per_page,
+            "totalElements": total,
+            "totalPages": total_pages,
+            "sort": sort_clause,
+        }
+        return envelope
 
-@router.get("/me/likes", response_model=list[LikeOut])
+
+@router.get("/me/likes", response_model=PagedResponse[LikeOut])
 async def get_my_likes(current_user: User = Depends(get_current_user), page: int = 1, per_page: int = 20, wishlist: bool | None = None, favourite: bool | None = None, sort_by: str | None = None, sort_dir: str = "asc", response: Response = None):
     async with get_session() as session:
-        from sqlalchemy import select, asc, desc, func
-        from app.db.models import UserBookLikes
         stmt = select(UserBookLikes).where(UserBookLikes.user_id == current_user.id)
         if wishlist is not None:
             stmt = stmt.where(UserBookLikes.wishlist == bool(wishlist))
@@ -99,8 +134,10 @@ async def get_my_likes(current_user: User = Depends(get_current_user), page: int
             count_stmt = count_stmt.where(UserBookLikes.favourite == bool(favourite))
         total = int((await session.execute(count_stmt)).scalar_one())
         # ordering support
+        sort_clause = None
         if sort_by and hasattr(UserBookLikes, sort_by):
             col = getattr(UserBookLikes, sort_by)
+            sort_clause = f"{sort_by},{sort_dir}"
             if sort_dir and sort_dir.lower().startswith("desc"):
                 stmt = stmt.order_by(desc(col))
             else:
@@ -112,4 +149,13 @@ async def get_my_likes(current_user: User = Depends(get_current_user), page: int
             response.headers["X-Total-Count"] = str(total)
             response.headers["X-Page"] = str(page)
             response.headers["X-Per-Page"] = str(per_page)
-        return [LikeOut.model_validate(i) for i in items]
+        # envelope
+        total_pages = math.ceil(total / per_page) if per_page else 0
+        return PagedResponse[LikeOut](
+            content=[LikeOut.model_validate(i) for i in items],
+            page=page,
+            size=per_page,
+            totalElements=total,
+            totalPages=total_pages,
+            sort=sort_clause,
+        )

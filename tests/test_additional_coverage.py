@@ -5,6 +5,7 @@ import pytest
 from app.storage import FSStorage, DBStorage, get_storage
 from app.redis_client import get_redis, _NullRedis
 from app.db.base import get_session
+from project.tests.conftest import UserWithLogin
 
 
 def test_redis_null_impl_returns_null():
@@ -63,14 +64,10 @@ def test_get_storage_respects_setting(monkeypatch):
     assert isinstance(s2, DBStorage)
 
 
-def test_cover_upload_and_not_found(test_app, admin_headers):
+def test_cover_upload_and_not_found(test_app, admin_user: UserWithLogin):
     # create user and book
-    user_id = str(uuid.uuid4())
-    username = "u_cover"
-    r = test_app.post("/api/v1/users/", json={"id": user_id, "username": username, "email": f"{user_id}@example.com", "password": "pw"})
-    assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "CBook", "author_id": None}, headers=admin_headers)
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "CBook", "author_id": None}, headers=admin_user[1])
     assert r.status_code == 201
 
     # attempt to get non-existing cover
@@ -78,74 +75,50 @@ def test_cover_upload_and_not_found(test_app, admin_headers):
     assert r.status_code == 404
 
 
-def test_order_item_and_pay_flow(test_app, admin_headers):
-    # create user and book and order
-    user_id = str(uuid.uuid4())
-    username = "u_order"
-    r = test_app.post("/api/v1/users/", json={"id": user_id, "username": username, "email": f"{user_id}@example.com", "password": "pw"})
-    assert r.status_code == 201
+def test_order_item_and_pay_flow(test_app, admin_user: UserWithLogin, normal_user: UserWithLogin):
     # create book
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Order Book", "author_id": None}, headers=admin_headers)
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Order Book", "author_id": None}, headers=admin_user[1])
     assert r.status_code == 201
     # create order
     order_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/orders/", json={"id": order_id, "user_id": user_id})
+    r = test_app.post("/api/v1/orders/", json={"id": order_id, "user_id": normal_user[0].id}, headers=normal_user[1])
     assert r.status_code == 201
 
-    # login
-    r = test_app.post("/api/v1/auth/login", json={"username": username, "password": "pw"})
-    assert r.status_code == 200
-    token = r.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-
     # add item
-    r = test_app.post(f"/api/v1/orders/{order_id}/items", json={"book_id": book_id, "quantity": 2}, headers=headers)
+    r = test_app.post(f"/api/v1/orders/{order_id}/items", json={"book_id": book_id, "quantity": 2}, headers=normal_user[1])
     assert r.status_code == 201
     jr = r.json()
     assert jr["book_id"] == book_id
     assert jr["quantity"] == 2
 
     # update item (service may return 200 or 201 depending on upsert semantics)
-    r = test_app.post(f"/api/v1/orders/{order_id}/items", json={"book_id": book_id, "quantity": 1}, headers=headers)
+    r = test_app.post(f"/api/v1/orders/{order_id}/items", json={"book_id": book_id, "quantity": 1}, headers=normal_user[1])
     assert r.status_code in (200, 201)
     jr = r.json()
     assert jr["quantity"] == 1
 
     # pay order - should succeed
-    r = test_app.post(f"/api/v1/orders/{order_id}/pay", headers=headers)
+    r = test_app.post(f"/api/v1/orders/{order_id}/pay", headers=normal_user[1])
     assert r.status_code == 200
     jr = r.json()
     assert jr["paid"] is True
 
     # paying again should fail
-    r = test_app.post(f"/api/v1/orders/{order_id}/pay", headers=headers)
+    r = test_app.post(f"/api/v1/orders/{order_id}/pay", headers=normal_user[1])
     assert r.status_code == 400
 
 
-def test_set_item_bad_authorization(test_app, admin_headers):
+def test_set_item_bad_authorization(test_app, admin_user: UserWithLogin, normal_user: UserWithLogin, another_normal_user: UserWithLogin):
     # create two users with unique usernames, one creates order the other tries to add
-    user_a = str(uuid.uuid4())
-    user_b = str(uuid.uuid4())
-    uname_a = f"ua_{user_a[:8]}"
-    uname_b = f"ub_{user_b[:8]}"
-    r = test_app.post("/api/v1/users/", json={"id": user_a, "username": uname_a, "email": f"{user_a}@example.com", "password": "pw"})
-    assert r.status_code == 201
-    r = test_app.post("/api/v1/users/", json={"id": user_b, "username": uname_b, "email": f"{user_b}@example.com", "password": "pw"})
-    assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Abook", "author_id": None}, headers=admin_headers)
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Abook", "author_id": None}, headers=admin_user[1])
     assert r.status_code == 201
     order_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/orders/", json={"id": order_id, "user_id": user_a})
+    r = test_app.post("/api/v1/orders/", json={"id": order_id, "user_id": normal_user[0].id}, headers=normal_user[1])
     assert r.status_code == 201
 
-    # login as user_b
-    r = test_app.post("/api/v1/auth/login", json={"username": uname_b, "password": "pw"})
-    token = r.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-
     # try to add item to user_a's order
-    r = test_app.post(f"/api/v1/orders/{order_id}/items", json={"book_id": book_id, "quantity": 1}, headers=headers)
+    r = test_app.post(f"/api/v1/orders/{order_id}/items", json={"book_id": book_id, "quantity": 1}, headers=another_normal_user[1])
     assert r.status_code == 403
 

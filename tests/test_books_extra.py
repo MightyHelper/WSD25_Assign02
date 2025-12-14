@@ -1,4 +1,5 @@
 import uuid
+from project.tests.conftest import UserWithLogin
 
 
 def auth_headers(client, username, password):
@@ -8,23 +9,22 @@ def auth_headers(client, username, password):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_list_and_like_book(test_app, admin_headers):
-    # create user and book
-    user_id = str(uuid.uuid4())
-    username = "u_list"
-    r = test_app.post("/api/v1/users/", json={"id": user_id, "username": username, "email": f"{user_id}@example.com", "password": "pw"})
-    assert r.status_code == 201
+def test_list_and_like_book(test_app, admin_user: UserWithLogin, normal_user: UserWithLogin):
+    # use fixture user and create a book
+    user, user_headers = normal_user
+    user_id = user.id
+    username = user.username
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "List Book", "author_id": None}, headers=admin_headers)
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "List Book", "author_id": None}, headers=admin_user[1])
     assert r.status_code == 201
 
     # list books (public)
     r = test_app.get("/api/v1/books/")
     assert r.status_code == 200
     data = r.json()
-    assert any(b["id"] == book_id for b in data)
+    assert any(b["id"] == book_id for b in data['content'])
 
-    headers = auth_headers(test_app, username, "pw")
+    headers = user_headers
 
     # like the book (create)
     r = test_app.patch(f"/api/v1/books/{book_id}/like", params={"wishlist": True}, headers=headers)

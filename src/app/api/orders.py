@@ -34,8 +34,13 @@ class ItemOut(BaseModel):
     model_config = {"extra": "ignore", "from_attributes": True}
 
 @router.post("/", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
-async def create_order(o: OrderIn):
+async def create_order(o: OrderIn, current_user: User = Depends(get_current_user)):
     async with get_session() as session:
+        if current_user.type != 1:
+            if o.user_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Forbidden")
+            if o.paid:
+                raise HTTPException(status_code=400, detail="Cannot create paid order")
         order = Order(id=o.id, user_id=o.user_id, paid=o.paid)
         session.add(order)
         await session.commit()
