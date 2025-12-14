@@ -1,6 +1,3 @@
-from pydantic_settings import BaseSettings
-from pydantic import ConfigDict
-from typing import Optional
 from enum import StrEnum
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
@@ -20,6 +17,17 @@ class Settings(BaseSettings):
     # storage selection: 'fs' stores files on filesystem, 'db' stores blobs inline
     STORAGE_KIND: StorageKind = StorageKind.FS
 
+    # Comma-separated list of allowed CORS origins. Example:
+    # CORS_ORIGINS=http://localhost:3000,https://example.com
+    CORS_ORIGINS: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Return parsed list of origins. Empty list disables CORS middleware."""
+        if not self.CORS_ORIGINS:
+            return []
+        return [s.strip() for s in self.CORS_ORIGINS.split(",") if s.strip()]
 
 settings = Settings()

@@ -2,7 +2,7 @@ import logging
 import logging.config
 import os
 from fastapi import FastAPI
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from contextlib import asynccontextmanager
 
 from .config import settings
@@ -21,6 +21,10 @@ from app.api.reviews import router as reviews_router
 from app.api.comments import router as comments_router
 from app.api.likes import router as likes_router
 from app.api.orders import router as orders_router
+from app.metrics import metrics_response
+
+# Added import for CORS middleware
+from starlette.middleware.cors import CORSMiddleware
 
 
 def configure_logging():
@@ -75,6 +79,18 @@ def create_app() -> FastAPI:
     # Add middleware
     app.add_middleware(LoggingMiddleware)
 
+    # Add CORS middleware when configured via settings.cors_origins
+    origins = settings.cors_origins
+    if origins:
+        # allow_credentials=True is safe only when origins are explicit (not '*')
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
     # Global exception handler with helpful JSON in non-production
     @app.exception_handler(Exception)
     async def all_exception_handler(request, exc):
@@ -118,6 +134,11 @@ def create_app() -> FastAPI:
     async def health() -> JSONResponse:
         return JSONResponse({"status": "ok", "version": API_VERSION})
 
+    @app.get("/metrics")
+    async def metrics() -> Response:
+        # Return prometheus metrics (text format)
+        return metrics_response()
+
     # Include routers
     app.include_router(auth_router)
     app.include_router(books_router)
@@ -130,5 +151,3 @@ def create_app() -> FastAPI:
 
     return app
 
-# Note: do not create app at import time to avoid side-effects during test collection.
-# If running via uvicorn, use `uvicorn app.main:create_app` or create app explicitly.

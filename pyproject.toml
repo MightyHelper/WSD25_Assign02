@@ -16,6 +16,7 @@ dependencies = [
     "pydantic[email]",
     "pydantic-settings>=2.12.0",
     "pyyaml>=6.0.3",
+    "prometheus_client>=0.16.0",
 ]
 #[project.dependencies]
 #fastapi = "^0.95.0"
@@ -52,4 +53,3 @@ dev = [
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
 ]
-
