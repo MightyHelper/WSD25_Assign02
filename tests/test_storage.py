@@ -3,12 +3,7 @@ import os
 from app.main import create_app
 from app.db.models import Author, Book
 from app.db.base import get_session
-from app.security.dependencies import get_current_user
 import uuid
-
-from project.tests.conftest import admin_user
-
-
 async def _create_author_and_book():
     async with get_session() as session:
         a = Author(id=str(uuid.uuid4()), name="Author")
