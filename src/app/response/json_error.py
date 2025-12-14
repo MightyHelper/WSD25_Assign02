@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any, Optional
 
 class JSONError(BaseModel):
@@ -12,5 +12,5 @@ class JSONError(BaseModel):
 
     @classmethod
     def from_exception(cls, path: str, status: int, code: str, message: str, details: Any = None) -> "JSONError":
-        return cls(timestamp=datetime.utcnow(), path=path, status=status, code=code, message=message, details=details)
+        return cls(timestamp=datetime.now(UTC), path=path, status=status, code=code, message=message, details=details)
 

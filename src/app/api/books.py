@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
-from pydantic import BaseModel
-from app.db.models import Book, User, UserBookLikes
-from app.db.base import get_session
-from app.db import get_storage_dep, BlobStorage
-from app.redis_client import get_redis_dep
-from app.security.dependencies import get_current_user
-from app.storage import get_storage
 import logging
-from ..config import settings
+
+from fastapi import APIRouter, HTTPException, status, Depends, Response, Request
+from pydantic import BaseModel
+
+from app.db import get_storage_dep, BlobStorage
+from app.db.base import get_session
+from app.db.models import Book, UserBookLikes, User
+from app.redis_client import get_redis_dep
+from app.storage import get_storage
+from ..security.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/v1/books", tags=["books"])
+logger = logging.getLogger('app.api.books')
 
 CACHE_TTL = 60  # seconds
 
@@ -53,7 +55,6 @@ class LikeOut(BaseModel):
 
     model_config = {"extra": "ignore", "from_attributes": True}
 
-logger = logging.getLogger('app.api.books')
 
 @router.post("/", response_model=BookOut, status_code=status.HTTP_201_CREATED)
 async def create_book(book_in: BookIn, current_user: User = Depends(get_current_user)):
@@ -192,31 +193,6 @@ async def upload_cover(book_id: str, request: Request, storage: BlobStorage = De
         raise HTTPException(status_code=404, detail="Book not found")
     return {"ok": True}
 
-@router.post("/{book_id}/cover")
-async def upload_cover_alt(book_id: str, request: Request):
-    """Upload a cover image for a book. Uses configured storage (fs or db). Accepts raw bytes in the request body."""
-    storage = get_storage()
-    data = await request.body()
-    if not data:
-        raise HTTPException(status_code=400, detail="Empty body")
-    async with get_session() as session:
-        book = await session.get(Book, book_id)
-        if not book:
-            raise HTTPException(status_code=404, detail="Book not found")
-        # if storage.save_cover returns a path, store cover_path; if None, store blob
-        result = await storage.save_cover(book_id, data)
-        if result is None:
-            # DB storage: write to blob column
-            book.cover = data
-            book.cover_path = None
-        else:
-            book.cover_path = result
-            book.cover = None
-        session.add(book)
-        await session.commit()
-        await session.refresh(book)
-        logging.getLogger(__name__).info("After upload - book.cover_path=%s, book.cover is %s", getattr(book, 'cover_path', None), 'set' if getattr(book,'cover',None) else 'none')
-        return {"ok": True, "book_id": book_id}
 
 @router.get("/{book_id}/cover")
 async def get_cover(book_id: str, storage: BlobStorage = Depends(get_storage_dep)):
@@ -250,3 +226,85 @@ async def get_cover(book_id: str, storage: BlobStorage = Depends(get_storage_dep
         if getattr(book, "cover", None):
             return Response(content=book.cover, media_type="application/octet-stream")
         raise HTTPException(status_code=404, detail="Cover not found")
+
+@router.put("/{book_id}", response_model=BookOut)
+async def update_book(book_id: str, book_in: BookIn, current_user: User = Depends(get_current_user)):
+    if getattr(current_user, 'type', 0) != 1:
+        logger.warning("Unauthorized book update attempt by user id=%s", getattr(current_user, 'id', None))
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    async with get_session() as session:
+        b = await session.get(Book, book_id)
+        if not b:
+            logger.info("Book not found for update: %s", book_id)
+            raise HTTPException(status_code=404, detail="Book not found")
+        b.title = book_in.title
+        b.author_id = book_in.author_id
+        b.isbn = book_in.isbn
+        b.description = book_in.description
+        session.add(b)
+        await session.commit()
+        await session.refresh(b)
+        logger.info("Book updated id=%s title=%s by user id=%s", b.id, b.title, getattr(current_user, 'id', None))
+        return BookOut.model_validate(b)
+
+@router.patch("/{book_id}", response_model=BookOut)
+async def patch_book(book_id: str, book_in: BookIn, current_user: User = Depends(get_current_user)):
+    if getattr(current_user, 'type', 0) != 1:
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    async with get_session() as session:
+        b = await session.get(Book, book_id)
+        if not b:
+            raise HTTPException(status_code=404, detail="Book not found")
+        if book_in.title:
+            b.title = book_in.title
+        if book_in.author_id is not None:
+            b.author_id = book_in.author_id
+        if book_in.isbn is not None:
+            b.isbn = book_in.isbn
+        if book_in.description is not None:
+            b.description = book_in.description
+        session.add(b)
+        await session.commit()
+        await session.refresh(b)
+        return BookOut.model_validate(b)
+
+@router.get("/", response_model=list[BookListOut])
+async def list_books(page: int = 1, per_page: int = 20, title: str | None = None, author_id: str | None = None):
+    async with get_session() as session:
+        from sqlalchemy import select
+        stmt = select(Book)
+        if title:
+            # use ilike where supported by dialect; for sqlite this still works
+            stmt = stmt.where(Book.title.ilike(f"%{title}%"))
+        if author_id:
+            stmt = stmt.where(Book.author_id == author_id)
+        stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+        res = await session.execute(stmt)
+        books = res.scalars().all()
+        return [BookListOut.model_validate(b) for b in books]
+
+@router.post("/{book_id}/cover")
+async def upload_cover(book_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    """Upload a cover image for a book. Uses configured storage (fs or db). Accepts raw bytes in the request body."""
+    storage = get_storage()
+    data = await request.body()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty body")
+    async with get_session() as session:
+        book = await session.get(Book, book_id)
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+        # if storage.save_cover returns a path, store cover_path; if None, store blob
+        result = await storage.save_cover(book_id, data)
+        if result is None:
+            # DB storage: write to blob column
+            book.cover = data
+            book.cover_path = None
+        else:
+            book.cover_path = result
+            book.cover = None
+        session.add(book)
+        await session.commit()
+        await session.refresh(book)
+        logging.getLogger(__name__).info("After upload - book.cover_path=%s, book.cover is %s", getattr(book, 'cover_path', None), 'set' if getattr(book,'cover',None) else 'none')
+        return {"ok": True, "book_id": book_id}

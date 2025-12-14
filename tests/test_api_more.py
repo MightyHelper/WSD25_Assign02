@@ -8,7 +8,7 @@ def auth_headers(client, username, password):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_authors_reviews_comments_likes_orders_more(test_app):
+def test_authors_reviews_comments_likes_orders_more(test_app, admin_headers):
     # setup user, author, book
     user_id = str(uuid.uuid4())
     username = "user_more"
@@ -23,10 +23,10 @@ def test_authors_reviews_comments_likes_orders_more(test_app):
 
     headers = auth_headers(test_app, username, "pw")
 
-    r = test_app.post("/api/v1/authors/", json={"id": author_id, "name": "Auth"})
+    r = test_app.post("/api/v1/authors/", json={"id": author_id, "name": "Auth"}, headers=admin_headers)
     assert r.status_code == 201
 
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "BookMore", "author_id": author_id})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "BookMore", "author_id": author_id}, headers=admin_headers)
     assert r.status_code == 201
 
     # create review and comment

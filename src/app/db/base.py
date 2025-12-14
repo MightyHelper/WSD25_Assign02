@@ -49,7 +49,6 @@ async def close_db() -> None:
             # raise unexpected exceptions during engine disposal in test shutdown.
             # Swallow exceptions to make test teardown robust and log the issue.
             logger.warning("Error while disposing DB engine during shutdown: %s", exc)
-
 def get_engine() -> AsyncEngine | None:
     return _engine
 

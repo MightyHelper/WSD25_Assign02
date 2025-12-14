@@ -7,10 +7,10 @@ def auth_headers_for_subject(client, subject, password="pw"):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_like_book_user_not_found(test_app):
+def test_like_book_user_not_found(test_app, admin_headers):
     # create a book but use a token whose subject doesn't map to an existing user
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Edge Book", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Edge Book", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     headers = auth_headers_for_subject(test_app, "ghost_user")
     # should return 401 because user not found
@@ -31,7 +31,7 @@ def test_upload_cover_empty_body_returns_400(test_app, admin_headers):
     r = test_app.post("/api/v1/auth/login", json={"username": uname, "password": "pw"})
     token = r.json().get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
-    r = test_app.post(f"/api/v1/books/{book_id}/cover", headers=headers, data=b"")
+    r = test_app.post(f"/api/v1/books/{book_id}/cover", headers=headers, content=b"")
     assert r.status_code == 400
 
 
@@ -59,7 +59,7 @@ def test_get_cover_path_missing_returns_404(test_app, tmp_path, admin_headers):
     assert r.status_code == 404
 
 
-def test_comment_like_unlike_flow(test_app):
+def test_comment_like_unlike_flow(test_app, admin_headers):
     # create user
     user_id = str(uuid.uuid4())
     uname = f"u_{user_id[:6]}"
@@ -68,7 +68,7 @@ def test_comment_like_unlike_flow(test_app):
 
     # create a book and then create review and comment via the new nested endpoint
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Rb", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Rb", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     review_id = str(uuid.uuid4())
     r = test_app.post("/api/v1/reviews/", json={"id": review_id, "book_id": book_id, "user_id": user_id, "title": "R", "content": "c"})

@@ -6,13 +6,13 @@ from app.security.jwt import create_access_token
 from app.security.password import hash_password
 
 # ensure test environment variables are set before importing the application
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test_db.sqlite")
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_db.sqlite"
 # avoid initializing redis during tests unless explicitly provided
-os.environ.setdefault("REDIS_URL", "")
+os.environ["REDIS_URL"] = ""
 # provide PEPPER used by security settings during tests
-os.environ.setdefault("PEPPER", "tests-pepper")
+os.environ["PEPPER"] = "tests-pepper"
 # mark environment as test so runtime code can reset DB between tests when needed
-os.environ.setdefault("APP_ENV", "test")
+os.environ["APP_ENV"] = "test"
 
 from app.main import create_app
 from app.db.base import get_session
@@ -55,8 +55,8 @@ def test_app() -> TestClient:
 
 
 @pytest.fixture
-def admin_headers():
-    # create admin in DB and return Authorization header
+def admin_headers(test_app):
+    # create admin in DB and return Authorization header; depends on test_app to ensure DB is reset
     admin = _create_admin_in_db()
     token = create_access_token(subject=admin.id, user_type=1)
     return {"Authorization": f"Bearer {token}"}

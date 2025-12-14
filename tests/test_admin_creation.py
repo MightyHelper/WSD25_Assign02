@@ -1,5 +1,8 @@
+from sqlalchemy import select
 import uuid
 import asyncio
+
+from sqlalchemy.exc import IntegrityError
 
 from app.db.base import get_session
 from app.db.models import User
@@ -12,7 +15,17 @@ def create_admin_user_in_db(username: str = 'admin0'):
             uid = str(uuid.uuid4())
             u = User(id=uid, username=username, email=f"{uid}@example.com", password_hash=hash_password('adminpw'), type=1)
             session.add(u)
-            await session.commit()
+            try:
+                await session.commit()
+            except IntegrityError:
+                # likely UNIQUE constraint from parallel/previous creation; try to return existing
+                async with get_session() as session2:
+                    stmt = select(User).where(User.username == username)
+                    res = await session2.execute(stmt)
+                    existing = res.scalars().first()
+                    if existing:
+                        return existing
+                    raise
             await session.refresh(u)
             return u
     return asyncio.run(_create())

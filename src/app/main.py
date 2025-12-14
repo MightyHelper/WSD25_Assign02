@@ -22,15 +22,6 @@ from app.api.comments import router as comments_router
 from app.api.likes import router as likes_router
 from app.api.orders import router as orders_router
 
-# include our extra routers (partial implementations from HandIn)
-from .api.books_extra import router as books_extra_router
-from .api.authors_extra import router as authors_extra_router
-from .api.reviews_extra import router as reviews_extra_router
-from .api.comments_extra import router as comments_extra_router
-from .api.comment_likes import router as comment_likes_router
-from .api.users_extra import router as users_extra_router
-from .api.orders_extra import router as orders_extra_router
-
 
 def configure_logging():
     """Load logging configuration from YAML file specified in LOGGING_CONFIG env or default package file.
@@ -99,7 +90,8 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI):
         # startup
         logger.info("Starting up: init DB and Redis")
-        dsn = settings.DATABASE_URL or "sqlite+aiosqlite:///./dev.db"
+        # Default to in-memory sqlite if no DATABASE_URL provided
+        dsn = settings.DATABASE_URL or "sqlite+aiosqlite://"
         await init_db(dsn)
         # ensure tables exist (useful for sqlite in tests)
         try:
@@ -119,6 +111,7 @@ def create_app() -> FastAPI:
                 await close_redis()
             await close_db()
 
+    # noinspection PyUnresolvedReferences
     app.router.lifespan_context = lifespan
 
     @app.get("/health")
@@ -128,19 +121,12 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(auth_router)
     app.include_router(books_router)
-    app.include_router(books_extra_router)
     app.include_router(authors_router)
-    app.include_router(authors_extra_router)
     app.include_router(users_router)
-    app.include_router(users_extra_router)
     app.include_router(reviews_router)
-    app.include_router(reviews_extra_router)
     app.include_router(comments_router)
-    app.include_router(comments_extra_router)
     app.include_router(likes_router)
-    app.include_router(comment_likes_router)
     app.include_router(orders_router)
-    app.include_router(orders_extra_router)
 
     return app
 

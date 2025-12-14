@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "secret-for-dev"
     APP_ENV: str = "development"
     # application-level secret pepper for password hashing; required for security
-    PEPPER: str  # required; set via environment or .env
+    PEPPER: str = "test-pepper"
 
     # storage selection: 'fs' stores files on filesystem, 'db' stores blobs inline
     STORAGE_KIND: StorageKind = StorageKind.FS

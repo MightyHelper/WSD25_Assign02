@@ -74,3 +74,36 @@ async def list_authors(response: Response, page: int = 1, per_page: int = 20, na
         response.headers["X-Page"] = str(page)
         response.headers["X-Per-Page"] = str(per_page)
         return [AuthorOut.model_validate(a) for a in authors]
+
+@router.put("/{author_id}", response_model=AuthorOut)
+async def update_author(author_id: str, author_in: AuthorIn, current_user: User = Depends(get_current_user)):
+    if getattr(current_user, 'type', 0) != 1:
+        logger.warning("Unauthorized author update attempt by user id=%s", getattr(current_user, 'id', None))
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    async with get_session() as session:
+        a = await session.get(Author, author_id)
+        if not a:
+            logger.info("Author not found for update: %s", author_id)
+            raise HTTPException(status_code=404, detail="Author not found")
+        a.name = author_in.name
+        session.add(a)
+        await session.commit()
+        await session.refresh(a)
+        logger.info("Author updated id=%s name=%s by user id=%s", a.id, a.name, getattr(current_user, 'id', None))
+        return AuthorOut.model_validate(a)
+
+@router.patch("/{author_id}", response_model=AuthorOut)
+async def patch_author(author_id: str, author_in: AuthorIn, current_user: User = Depends(get_current_user)):
+    # same admin check
+    if getattr(current_user, 'type', 0) != 1:
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    async with get_session() as session:
+        a = await session.get(Author, author_id)
+        if not a:
+            raise HTTPException(status_code=404, detail="Author not found")
+        if author_in.name:
+            a.name = author_in.name
+        session.add(a)
+        await session.commit()
+        await session.refresh(a)
+        return AuthorOut.model_validate(a)

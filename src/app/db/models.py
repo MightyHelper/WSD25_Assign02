@@ -1,6 +1,8 @@
-from sqlalchemy import String, Column, Integer, Boolean, LargeBinary, ForeignKey, Text
+from sqlalchemy import String, Column, Integer, Boolean, LargeBinary, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
 from .base import Base
+import datetime
+from datetime import timezone
 
 class User(Base):
     __tablename__ = "users"
@@ -67,3 +69,11 @@ class CommentLike(Base):
     __tablename__ = "comment_likes"
     comment_id = Column(String(36), ForeignKey("comments.id"), primary_key=True)
     user_id = Column(String(36), ForeignKey("users.id"), primary_key=True)
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    token = Column(String(128), nullable=False, unique=True)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(timezone.utc))
