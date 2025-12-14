@@ -2,7 +2,7 @@ import uuid
 
 from app.db.models import Book
 from app.db.base import init_db, create_tables, get_session
-from fne.storage import get_storage_instance
+from app.storage import get_storage
 
 
 def test_blob_save_and_get():
@@ -17,7 +17,7 @@ def test_blob_save_and_get():
     import asyncio
     asyncio.run(_create_book())
 
-    storage = get_storage_instance()
+    storage = get_storage()
     data = b"hello"
     import asyncio
     asyncio.run(storage.save_blob(book_id, data))

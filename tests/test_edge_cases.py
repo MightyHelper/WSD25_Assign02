@@ -1,5 +1,4 @@
 import uuid
-import os
 from app.security.jwt import create_access_token
 
 

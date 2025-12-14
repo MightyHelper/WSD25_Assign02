@@ -1,13 +1,9 @@
 import uuid
-import os
-import asyncio
-from pathlib import Path
 
 import pytest
 
 from app.storage import FSStorage, DBStorage, get_storage
-from app.redis_client import get_redis, _NullRedis, init_redis, close_redis
-from app.db.models import Book, Order
+from app.redis_client import get_redis, _NullRedis
 from app.db.base import get_session
 
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from app.db.models import Order, BookOrderItem, Book
-from app.storage.base import get_session
+from app.db.base import get_session
 from ..security.dependencies import get_current_user
 from app.db.models import User
 

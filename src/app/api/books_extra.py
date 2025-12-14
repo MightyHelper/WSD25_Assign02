@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List
 from ..security.dependencies import get_current_user
 from app.db.models import Book, UserBookLikes, User
-from app.storage.base import get_session
+from app.db.base import get_session
 from app.storage import get_storage
 import logging
 
@@ -31,7 +31,7 @@ class LikeOut(BaseModel):
 
     model_config = {"extra": "ignore", "from_attributes": True}
 
-@router.get("/", response_model=List[BookListOut])
+@router.get("/", response_model=list[BookListOut])
 async def list_books(page: int = 1, per_page: int = 20, title: str | None = None, author_id: str | None = None):
     async with get_session() as session:
         from sqlalchemy import select

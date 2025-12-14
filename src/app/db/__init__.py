@@ -1,4 +1,4 @@
-from ..config import settings, FileStorageOption, StorageKind
+from ..config import settings, StorageKind
 from app.storage.db_storage import DBBlobStorage
 from app.storage.fs_storage import FileSystemStorage
 from app.storage.base import BlobStorage

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 from app.db.models import UserBookReview, Book
-from app.storage.base import get_session
+from app.db.base import get_session
 
 router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
 
@@ -15,7 +15,7 @@ class ReviewOut(BaseModel):
 
     model_config = {"extra": "ignore", "from_attributes": True}
 
-@router.get("/book/{book_id}", response_model=List[ReviewOut])
+@router.get("/book/{book_id}", response_model=list[ReviewOut])
 async def list_reviews_for_book(book_id: str, page: int = 1, per_page: int = 20):
     async with get_session() as session:
         # ensure book exists

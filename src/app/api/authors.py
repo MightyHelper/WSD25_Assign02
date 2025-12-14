@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from app.db.models import Author
-from app.storage.base import get_session
+from app.db.base import get_session
 
 router = APIRouter(prefix="/api/v1/authors", tags=["authors"])
 
@@ -33,3 +33,15 @@ async def get_author(author_id: str):
         if not a:
             raise HTTPException(status_code=404, detail="Author not found")
         return AuthorOut.model_validate(a)
+
+@router.get("/", response_model=list[AuthorOut])
+async def list_authors(page: int = 1, per_page: int = 20, name: str | None = None):
+    async with get_session() as session:
+        from sqlalchemy import select
+        stmt = select(Author)
+        if name:
+            stmt = stmt.where(Author.name.ilike(f"%{name}%"))
+        stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+        res = await session.execute(stmt)
+        authors = res.scalars().all()
+        return [AuthorOut.model_validate(a) for a in authors]

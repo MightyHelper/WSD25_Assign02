@@ -1,5 +1,5 @@
 from app.db.models import Book
-from app.storage.base import get_session
+from app.db.base import get_session
 from .base import BlobStorage
 
 class DBBlobStorage(BlobStorage):

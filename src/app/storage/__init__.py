@@ -7,6 +7,8 @@ import os
 import asyncio
 import logging
 
+from .db_storage import DBBlobStorage
+
 logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path("uploads")
@@ -31,18 +33,30 @@ class FSStorage:
 
     async def get_cover(self, book: Book) -> Optional[bytes]:
         path = book.cover_path
-        logger.info("FSStorage.get_cover called for book=%s cover_path=%s", getattr(book, 'id', None), path)
         if not path:
-            logger.info("no cover_path set")
             return None
         p = Path(path)
         exists = await asyncio.to_thread(p.exists)
-        logger.info("Path exists: %s (%s)", exists, p)
         if not exists:
             return None
         data = await asyncio.to_thread(p.read_bytes)
-        logger.info("Read %d bytes", len(data))
         return data
+
+    # provide blob-style methods used in tests
+    async def save_blob(self, key: str, data: bytes) -> str:
+        return await self.save_cover(key, data)
+
+    async def get_blob(self, key: str) -> Optional[bytes]:
+        # key is filename (book id in tests) - attempt to find a file starting with key
+        for p in UPLOAD_DIR.iterdir():
+            if p.name.startswith(key):
+                return await asyncio.to_thread(p.read_bytes)
+        return None
+
+    async def delete_blob(self, key: str) -> None:
+        for p in UPLOAD_DIR.iterdir():
+            if p.name.startswith(key):
+                await asyncio.to_thread(p.unlink)
 
 class DBStorage:
     async def save_cover(self, book_id: str, data: bytes) -> Optional[str]:
@@ -52,9 +66,26 @@ class DBStorage:
     async def get_cover(self, book: Book) -> Optional[bytes]:
         return book.cover
 
+    # Provide blob aliases using the DBBlobStorage implementation
+    def _db_blob_impl(self) -> DBBlobStorage:
+        return DBBlobStorage()
+
+    async def save_blob(self, key: str, data: bytes) -> str:
+        return await self._db_blob_impl().save_blob(key, data)
+
+    async def get_blob(self, key: str) -> Optional[bytes]:
+        return await self._db_blob_impl().get_blob(key)
+
+    async def delete_blob(self, key: str) -> None:
+        await self._db_blob_impl().delete_blob(key)
+
 
 def get_storage() -> Storage:
     # compare against the enum StorageKind
     if settings.STORAGE_KIND == StorageKind.FS:
         return FSStorage()
+    # return DB-backed storage that supports both cover and blob operations
     return DBStorage()
+
+# expose names expected by tests
+__all__ = ["get_storage", "FSStorage", "DBStorage", "DBBlobStorage"]

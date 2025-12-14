@@ -1,7 +1,6 @@
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
 from sqlalchemy import create_engine
 from alembic import context
 
@@ -20,7 +19,7 @@ if config.config_file_name is not None:
 # Import the app's Base metadata
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from app.db.base import Base
+from app.storage.base import Base
 
 target_metadata = Base.metadata
 

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from .config import settings
 from .constants import API_TITLE, API_DESCRIPTION, API_VERSION
-from app.storage.base import init_db, close_db
+from app.db.base import init_db, close_db, create_tables
 from .redis_client import init_redis, close_redis
 
 from .middleware.logging_middleware import LoggingMiddleware
@@ -39,6 +39,17 @@ def create_app() -> FastAPI:
     # Add middleware
     app.add_middleware(LoggingMiddleware)
 
+    # Global exception handler with helpful JSON in non-production
+    @app.exception_handler(Exception)
+    async def all_exception_handler(request, exc):
+        # Log full traceback server-side
+        logger.exception("Unhandled exception during request: %s", exc)
+        if getattr(settings, 'APP_ENV', 'development') != 'production':
+            # Provide type and message to aid debugging in tests/dev
+            return JSONResponse(status_code=500, content={"detail": str(exc), "type": exc.__class__.__name__})
+        # Generic message in production
+        return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # startup
@@ -47,7 +58,6 @@ def create_app() -> FastAPI:
         await init_db(dsn)
         # ensure tables exist (useful for sqlite in tests)
         try:
-            from app.storage.base import create_tables
             await create_tables()
         except Exception:
             logger.exception("Failed to create DB tables during startup")
@@ -89,5 +99,5 @@ def create_app() -> FastAPI:
 
     return app
 
-# module-level app for uvicorn
-app = create_app()
+# Note: do not create app at import time to avoid side-effects during test collection.
+# If running via uvicorn, use `uvicorn app.main:create_app` or create app explicitly.

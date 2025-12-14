@@ -3,7 +3,7 @@ from ..schemas.auth import LoginRequest, TokenResponse, RegisterRequest
 from ..security.jwt import create_access_token
 from ..db.models import User
 from ..security.password import verify_password, hash_password
-from app.storage.base import get_session
+from app.db.base import get_session
 import logging
 import uuid
 

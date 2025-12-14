@@ -1,8 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import List
 from app.db.models import Author
-from app.storage.base import get_session
+from app.db.base import get_session
 
 router = APIRouter(prefix="/api/v1/authors", tags=["authors"])
 
@@ -12,7 +11,7 @@ class AuthorOut(BaseModel):
 
     model_config = {"extra": "ignore", "from_attributes": True}
 
-@router.get("/", response_model=List[AuthorOut])
+@router.get("/", response_model=list[AuthorOut])
 async def list_authors(page: int = 1, per_page: int = 20, name: str | None = None):
     async with get_session() as session:
         from sqlalchemy import select

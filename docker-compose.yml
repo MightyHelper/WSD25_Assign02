@@ -2,6 +2,7 @@ version: '3.8'
 services:
   app:
     build: .
+    image: ghcr.io/mightyhelper/wsd25_assign02:latest
     ports:
       - "8000:8000"
     environment:

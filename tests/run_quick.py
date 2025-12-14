@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 import uuid
 import sys
-import time
 
 app = create_app()
 client = TestClient(app)
@@ -41,7 +40,7 @@ def run():
     comment_id = str(uuid.uuid4())
     print('inserting comment via DB', comment_id, flush=True)
     from app.db.base import get_session
-    from app.db.models import UserBookReview, Comment
+    from app.db.models import Comment
 
     async def _insert():
         async with get_session() as session:

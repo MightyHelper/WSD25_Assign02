@@ -1,12 +1,10 @@
 import os
 from fastapi.testclient import TestClient
-import pytest
 
 from app.main import create_app
 from app.db.base import init_db, create_tables
 from app.db.models import Author, Book
 from app.db.base import get_session
-from app.security.jwt import create_access_token
 from app.security.password import hash_password
 from app.security.dependencies import get_current_user
 import uuid
