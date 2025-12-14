@@ -63,14 +63,14 @@ def test_get_storage_respects_setting(monkeypatch):
     assert isinstance(s2, DBStorage)
 
 
-def test_cover_upload_and_not_found(test_app):
+def test_cover_upload_and_not_found(test_app, admin_headers):
     # create user and book
     user_id = str(uuid.uuid4())
     username = "u_cover"
     r = test_app.post("/api/v1/users/", json={"id": user_id, "username": username, "email": f"{user_id}@example.com", "password": "pw"})
     assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "CBook", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "CBook", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
 
     # attempt to get non-existing cover
@@ -78,7 +78,7 @@ def test_cover_upload_and_not_found(test_app):
     assert r.status_code == 404
 
 
-def test_order_item_and_pay_flow(test_app):
+def test_order_item_and_pay_flow(test_app, admin_headers):
     # create user and book and order
     user_id = str(uuid.uuid4())
     username = "u_order"
@@ -86,7 +86,7 @@ def test_order_item_and_pay_flow(test_app):
     assert r.status_code == 201
     # create book
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Order Book", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Order Book", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     # create order
     order_id = str(uuid.uuid4())
@@ -123,7 +123,7 @@ def test_order_item_and_pay_flow(test_app):
     assert r.status_code == 400
 
 
-def test_set_item_bad_authorization(test_app):
+def test_set_item_bad_authorization(test_app, admin_headers):
     # create two users with unique usernames, one creates order the other tries to add
     user_a = str(uuid.uuid4())
     user_b = str(uuid.uuid4())
@@ -134,7 +134,7 @@ def test_set_item_bad_authorization(test_app):
     r = test_app.post("/api/v1/users/", json={"id": user_b, "username": uname_b, "email": f"{user_b}@example.com", "password": "pw"})
     assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Abook", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "Abook", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     order_id = str(uuid.uuid4())
     r = test_app.post("/api/v1/orders/", json={"id": order_id, "user_id": user_a})

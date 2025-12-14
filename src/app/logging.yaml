@@ -1,0 +1,39 @@
+version: 1
+formatters:
+  standard:
+    format: "%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(message)s"
+  access:
+    format: "%(asctime)s %(levelname)s [ACCESS] %(message)s"
+  detailed:
+    format: "%(asctime)s %(levelname)s [%(name)s:%(lineno)s] %(threadName)s %(process)d %(message)s"
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: standard
+    stream: ext://sys.stdout
+  file_rotating:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: detailed
+    filename: ./logs/app.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 5
+    encoding: utf8
+loggers:
+  uvicorn.error:
+    level: INFO
+    handlers: [console, file_rotating]
+    propagate: no
+  uvicorn.access:
+    level: INFO
+    handlers: [console, file_rotating]
+    propagate: no
+  app:
+    level: INFO
+    handlers: [console, file_rotating]
+    propagate: no
+root:
+  level: INFO
+  handlers: [console, file_rotating]
+

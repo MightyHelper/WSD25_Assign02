@@ -1,9 +1,9 @@
 import uuid
 
-def test_create_get_author(test_app):
+def test_create_get_author(test_app, admin_headers):
     author_id = str(uuid.uuid4())
     payload = {"id": author_id, "name": "Author Test"}
-    r = test_app.post("/api/v1/authors/", json=payload)
+    r = test_app.post("/api/v1/authors/", json=payload, headers=admin_headers)
     assert r.status_code == 201
     assert r.json()["id"] == author_id
 

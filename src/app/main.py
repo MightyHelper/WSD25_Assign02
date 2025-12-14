@@ -1,4 +1,6 @@
 import logging
+import logging.config
+import os
 from fastapi import FastAPI
 from starlette.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -29,7 +31,50 @@ from .api.comment_likes import router as comment_likes_router
 from .api.users_extra import router as users_extra_router
 from .api.orders_extra import router as orders_extra_router
 
-logging.basicConfig(level=logging.INFO)
+
+def configure_logging():
+    """Load logging configuration from YAML file specified in LOGGING_CONFIG env or default package file.
+    Falls back to a reasonable basicConfig if loading fails.
+    """
+    try:
+        import yaml
+    except Exception:
+        logging.basicConfig(level=logging.INFO)
+        return
+
+    cfg_path = os.environ.get('LOGGING_CONFIG')
+    if not cfg_path:
+        cfg_path = os.path.join(os.path.dirname(__file__), 'logging.yaml')
+    try:
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'rt', encoding='utf-8') as fh:
+                cfg = yaml.safe_load(fh)
+            # If file contains a path for file handlers, ensure directories exist
+            # Walk handlers to find filenames
+            handlers = cfg.get('handlers', {}) if isinstance(cfg, dict) else {}
+            for h in handlers.values():
+                fname = h.get('filename') if isinstance(h, dict) else None
+                if fname:
+                    d = os.path.dirname(fname)
+                    if d and not os.path.exists(d):
+                        try:
+                            os.makedirs(d, exist_ok=True)
+                        except Exception:
+                            pass
+            logging.config.dictConfig(cfg)
+            return
+    except Exception:
+        # If any error occurs parsing/applying YAML, fall back to basicConfig
+        logging.basicConfig(level=logging.INFO)
+        logging.getLogger(__name__).exception('Failed to load logging configuration from %s', cfg_path)
+        return
+
+    # final fallback
+    logging.basicConfig(level=logging.INFO)
+
+
+# Configure logging as early as possible
+configure_logging()
 logger = logging.getLogger(__name__)
 
 

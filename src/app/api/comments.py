@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response
 from pydantic import BaseModel
 from ..db.models import Comment, UserBookReview
 from app.db.base import get_session
@@ -51,16 +51,33 @@ async def delete_comment(comment_id: str):
 
 # ...merged from comments_extra.py - nested review routes...
 @router.get("/review/{review_id}/comments", response_model=list[CommentOut])
-async def list_comments_for_review(review_id: str, page: int = 1, per_page: int = 20):
+async def list_comments_for_review(response: Response, review_id: str, page: int = 1, per_page: int = 20, content: str | None = None, sort_by: str | None = None, sort_dir: str = "asc"):
     async with get_session() as session:
         # ensure review exists
         r = await session.get(UserBookReview, review_id)
         if not r:
             raise HTTPException(status_code=404, detail="Review not found")
-        from sqlalchemy import select
-        stmt = select(Comment).where(Comment.review_id == review_id).offset((page - 1) * per_page).limit(per_page)
+        from sqlalchemy import select, asc, desc, func
+        stmt = select(Comment).where(Comment.review_id == review_id)
+        if content:
+            stmt = stmt.where(Comment.content.ilike(f"%{content}%"))
+        # total count
+        count_stmt = select(func.count()).select_from(Comment).where(Comment.review_id == review_id)
+        if content:
+            count_stmt = count_stmt.where(Comment.content.ilike(f"%{content}%"))
+        total = int((await session.execute(count_stmt)).scalar_one())
+        if sort_by and hasattr(Comment, sort_by):
+            col = getattr(Comment, sort_by)
+            if sort_dir and sort_dir.lower().startswith("desc"):
+                stmt = stmt.order_by(desc(col))
+            else:
+                stmt = stmt.order_by(asc(col))
+        stmt = stmt.offset((page - 1) * per_page).limit(per_page)
         res = await session.execute(stmt)
         cms = res.scalars().all()
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Per-Page"] = str(per_page)
         return [CommentOut.model_validate(c) for c in cms]
 
 @router.post("/review/{review_id}/comments", response_model=CommentOut, status_code=201)

@@ -3,3 +3,5 @@
 uploads/
 **/*.egg-info/
 *.sqlite
+*.db
+logs/

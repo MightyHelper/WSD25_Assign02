@@ -7,6 +7,7 @@ from app.redis_client import get_redis_dep
 from app.security.dependencies import get_current_user
 from app.storage import get_storage
 import logging
+from ..config import settings
 
 router = APIRouter(prefix="/api/v1/books", tags=["books"])
 
@@ -52,13 +53,20 @@ class LikeOut(BaseModel):
 
     model_config = {"extra": "ignore", "from_attributes": True}
 
+logger = logging.getLogger('app.api.books')
+
 @router.post("/", response_model=BookOut, status_code=status.HTTP_201_CREATED)
-async def create_book(book_in: BookIn):
+async def create_book(book_in: BookIn, current_user: User = Depends(get_current_user)):
+    # only admins can create books
+    if getattr(current_user, 'type', 0) != 1:
+        logger.warning("Unauthorized book create attempt by user id=%s", getattr(current_user, 'id', None))
+        raise HTTPException(status_code=403, detail="Admin privileges required")
     async with get_session() as session:
         b = Book(id=book_in.id, title=book_in.title, author_id=book_in.author_id, isbn=book_in.isbn, description=book_in.description)
         session.add(b)
         await session.commit()
         await session.refresh(b)
+        logger.info("Book created id=%s title=%s author_id=%s by user id=%s", b.id, b.title, b.author_id, getattr(current_user,'id',None))
         return BookOut.model_validate(b)
 
 @router.get("/{book_id}", response_model=BookOut)
@@ -66,13 +74,16 @@ async def get_book(book_id: str, redis=Depends(get_redis_dep)):
     cache_key = f"book:{book_id}"
     cached = await redis.get(cache_key)
     if cached:
+        logger.debug("Cache hit for %s", cache_key)
         # cached is JSON string; return it directly
         from json import loads
         return BookOut.model_validate(loads(cached))
+    logger.debug("Cache miss for %s", cache_key)
 
     async with get_session() as session:
         b = await session.get(Book, book_id)
         if not b:
+            logger.info("Book not found: %s", book_id)
             raise HTTPException(status_code=404, detail="Book not found")
         book_out = BookOut.model_validate(b)
         # cache
@@ -85,31 +96,52 @@ async def delete_book(book_id: str):
     async with get_session() as session:
         b = await session.get(Book, book_id)
         if not b:
+            logger.info("Book not found for delete: %s", book_id)
             raise HTTPException(status_code=404, detail="Book not found")
         # If there's a cover path, try to remove file
         if getattr(b, 'cover_path', None):
             try:
                 from pathlib import Path
                 await __import__('asyncio').get_event_loop().run_in_executor(None, Path(b.cover_path).unlink)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.exception("Failed to remove cover file %s: %s", getattr(b, 'cover_path', None), exc)
         await session.delete(b)
         await session.commit()
+        logger.info("Book deleted id=%s", book_id)
         return {"ok": True}
 
 @router.get("/", response_model=list[BookListOut])
-async def list_books(page: int = 1, per_page: int = 20, title: str | None = None, author_id: str | None = None):
+async def list_books(response: Response, page: int = 1, per_page: int = 20, title: str | None = None, author_id: str | None = None, sort_by: str | None = None, sort_dir: str = "asc"):
     async with get_session() as session:
-        from sqlalchemy import select
+        from sqlalchemy import select, asc, desc, func
         stmt = select(Book)
         if title:
             # use ilike where supported by dialect; for sqlite this still works
             stmt = stmt.where(Book.title.ilike(f"%{title}%"))
         if author_id:
             stmt = stmt.where(Book.author_id == author_id)
+        # total
+        count_stmt = select(func.count()).select_from(Book)
+        if title:
+            count_stmt = count_stmt.where(Book.title.ilike(f"%{title}%"))
+        if author_id:
+            count_stmt = count_stmt.where(Book.author_id == author_id)
+        total = int((await session.execute(count_stmt)).scalar_one())
+        # Apply ordering if requested and valid
+        if sort_by:
+            # allow only attributes that exist on Book to avoid SQL injection
+            if hasattr(Book, sort_by):
+                col = getattr(Book, sort_by)
+                if sort_dir and sort_dir.lower().startswith("desc"):
+                    stmt = stmt.order_by(desc(col))
+                else:
+                    stmt = stmt.order_by(asc(col))
         stmt = stmt.offset((page - 1) * per_page).limit(per_page)
         res = await session.execute(stmt)
         books = res.scalars().all()
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Per-Page"] = str(per_page)
         return [BookListOut.model_validate(b) for b in books]
 
 @router.patch("/{book_id}/like", response_model=LikeOut)
@@ -192,13 +224,16 @@ async def get_cover(book_id: str, storage: BlobStorage = Depends(get_storage_dep
     try:
         blob = await storage.get_blob(book_id)
         if blob:
+            logger.debug("Blob storage returned data for book_id=%s", book_id)
             return Response(content=blob, media_type="application/octet-stream")
     except Exception:
+        logger.exception("Error fetching blob from storage for book_id=%s", book_id)
         pass
     # fallback to DB-stored blob or filesystem path
     async with get_session() as session:
         book = await session.get(Book, book_id)
         if not book:
+            logger.info("Book not found for cover fetch: %s", book_id)
             raise HTTPException(status_code=404, detail="Book not found")
         # Prefer filesystem path if present
         if getattr(book, "cover_path", None):

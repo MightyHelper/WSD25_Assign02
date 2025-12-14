@@ -18,32 +18,31 @@ def test_like_book_user_not_found(test_app):
     assert r.status_code == 401
 
 
-def test_upload_cover_empty_body_returns_400(test_app):
+def test_upload_cover_empty_body_returns_400(test_app, admin_headers):
     # create user and book
     user_id = str(uuid.uuid4())
     uname = f"u_{user_id[:6]}"
     r = test_app.post("/api/v1/users/", json={"id": user_id, "username": uname, "email": f"{user_id}@example.com", "password": "pw"})
     assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "EmptyCover", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "EmptyCover", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     # login
     r = test_app.post("/api/v1/auth/login", json={"username": uname, "password": "pw"})
-    token = r.json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/octet-stream"}
-    # send empty body
+    token = r.json().get("access_token")
+    headers = {"Authorization": f"Bearer {token}"}
     r = test_app.post(f"/api/v1/books/{book_id}/cover", headers=headers, data=b"")
     assert r.status_code == 400
 
 
-def test_get_cover_path_missing_returns_404(test_app, tmp_path):
+def test_get_cover_path_missing_returns_404(test_app, tmp_path, admin_headers):
     # create user and book and set cover_path to missing file
     user_id = str(uuid.uuid4())
     uname = f"u_{user_id[:6]}"
     r = test_app.post("/api/v1/users/", json={"id": user_id, "username": uname, "email": f"{user_id}@example.com", "password": "pw"})
     assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "MissingPath", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "MissingPath", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     # set cover_path directly in DB
     from app.db.base import get_session

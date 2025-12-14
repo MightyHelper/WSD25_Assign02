@@ -8,14 +8,14 @@ def auth_headers(client, username, password):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_list_and_like_book(test_app):
+def test_list_and_like_book(test_app, admin_headers):
     # create user and book
     user_id = str(uuid.uuid4())
     username = "u_list"
     r = test_app.post("/api/v1/users/", json={"id": user_id, "username": username, "email": f"{user_id}@example.com", "password": "pw"})
     assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "List Book", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "List Book", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
 
     # list books (public)

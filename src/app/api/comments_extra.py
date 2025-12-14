@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 from app.db.models import Comment, UserBookReview
 from app.db.base import get_session
@@ -15,16 +15,22 @@ class CommentOut(BaseModel):
     model_config = {"extra": "ignore", "from_attributes": True}
 
 @router.get("/{review_id}/comments", response_model=list[CommentOut])
-async def list_comments_for_review(review_id: str, page: int = 1, per_page: int = 20):
+async def list_comments_for_review(response: Response, review_id: str, page: int = 1, per_page: int = 20):
     async with get_session() as session:
         # ensure review exists
         r = await session.get(UserBookReview, review_id)
         if not r:
             raise HTTPException(status_code=404, detail="Review not found")
-        from sqlalchemy import select
+        from sqlalchemy import select, func
         stmt = select(Comment).where(Comment.review_id == review_id).offset((page - 1) * per_page).limit(per_page)
+        # total count
+        count_stmt = select(func.count()).select_from(Comment).where(Comment.review_id == review_id)
+        total = int((await session.execute(count_stmt)).scalar_one())
         res = await session.execute(stmt)
         cms = res.scalars().all()
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Per-Page"] = str(per_page)
         return [CommentOut.model_validate(c) for c in cms]
 
 # Adapter: Allow creating comments under a review path (nested style)

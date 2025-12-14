@@ -9,6 +9,7 @@ class User(Base):
     email = Column(String(200), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     active_order_id = Column(String(36), nullable=True)
+    type = Column(Integer, nullable=False, default=0)
 
 class Author(Base):
     __tablename__ = "authors"

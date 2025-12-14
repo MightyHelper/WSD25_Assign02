@@ -13,13 +13,13 @@ def auth_headers(client, username, password="pw"):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_order_item_delete_and_pay_empty(test_app):
+def test_order_item_delete_and_pay_empty(test_app, admin_headers):
     user_id = str(uuid.uuid4())
     uname = unique_uname()
     r = test_app.post("/api/v1/users/", json={"id": user_id, "username": uname, "email": f"{user_id}@example.com", "password": "pw"})
     assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "OrderDelBook", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "OrderDelBook", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
 
     order_id = str(uuid.uuid4())
@@ -40,13 +40,13 @@ def test_order_item_delete_and_pay_empty(test_app):
     assert r.status_code == 400
 
 
-def test_comment_like_already_liked(test_app):
+def test_comment_like_already_liked(test_app, admin_headers):
     user_id = str(uuid.uuid4())
     uname = unique_uname()
     r = test_app.post("/api/v1/users/", json={"id": user_id, "username": uname, "email": f"{user_id}@example.com", "password": "pw"})
     assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "CLB", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "CLB", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     review_id = str(uuid.uuid4())
     r = test_app.post("/api/v1/reviews/", json={"id": review_id, "book_id": book_id, "user_id": user_id, "title": "R", "content": "c"})
@@ -70,11 +70,11 @@ def test_comment_like_already_liked(test_app):
     assert r.status_code == 200
 
 
-def test_books_extra_cover_db_storage(monkeypatch, test_app):
+def test_books_extra_cover_db_storage(monkeypatch, test_app, admin_headers):
     # force DB storage
     monkeypatch.setattr(settings, "STORAGE_KIND", StorageKind.DB)
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "DBCover", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "DBCover", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     data = b"myblob"
     # write blob directly into DB (control path) and verify GET works
@@ -95,14 +95,14 @@ def test_books_extra_cover_db_storage(monkeypatch, test_app):
     assert r2.content == data
 
 
-def test_security_invalid_scheme(test_app):
+def test_security_invalid_scheme(test_app, admin_headers):
     # create user and book
     user_id = str(uuid.uuid4())
     uname = unique_uname()
     r = test_app.post("/api/v1/users/", json={"id": user_id, "username": uname, "email": f"{user_id}@example.com", "password": "pw"})
     assert r.status_code == 201
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "SecBook", "author_id": None})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "SecBook", "author_id": None}, headers=admin_headers)
     assert r.status_code == 201
     # call protected endpoint with wrong scheme
     r = test_app.patch(f"/api/v1/books/{book_id}/like", params={"wishlist": True}, headers={"Authorization": "Basic abc"})

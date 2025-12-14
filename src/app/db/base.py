@@ -24,6 +24,7 @@ async def init_db(dsn: str) -> None:
     global _engine, AsyncSessionLocal
     # Create engine/sessionmaker only once per process to avoid multiple engines
     if _engine is None:
+        logger.info("Initializing DB engine with dsn=%s", dsn)
         _engine = create_async_engine(dsn, future=True, echo=False)
         AsyncSessionLocal = async_sessionmaker(_engine, expire_on_commit=False, class_=AsyncSession)
 
@@ -33,6 +34,7 @@ async def create_tables() -> None:
     """
     global _tables_initialized
     assert _engine is not None, "Engine not initialized"
+    logger.info("Creating DB tables if not present")
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     _tables_initialized = True

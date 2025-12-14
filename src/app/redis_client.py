@@ -1,6 +1,9 @@
 import redis.asyncio as aioredis
 from typing import Optional, Any, Protocol, runtime_checkable
 from .config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 _redis: Optional[aioredis.Redis] = None
 
@@ -17,24 +20,32 @@ class _NullRedis(RedisLike):
     Methods mimic the aioredis.Redis async API used by the app: get, set, delete.
     """
     async def get(self, key: str) -> Any:
+        logger.debug("NullRedis.get called for key=%s", key)
         return None
 
     async def set(self, key: str, value: Any, ex: int | None = None) -> bool:
+        logger.debug("NullRedis.set called for key=%s ex=%s", key, ex)
         return True
 
     async def delete(self, *keys: str) -> int:
+        logger.debug("NullRedis.delete called for keys=%s", keys)
         return 0
 
 
 async def init_redis(dsn: str) -> None:
     global _redis
     if _redis is None:
+        logger.info("Initializing Redis client with dsn=%s", dsn)
         _redis = aioredis.from_url(dsn, encoding="utf-8", decode_responses=True)
 
 async def close_redis() -> None:
     global _redis
     if _redis is not None:
-        await _redis.close()
+        logger.info("Closing Redis client")
+        try:
+            await _redis.close()
+        except Exception as exc:
+            logger.exception("Error while closing Redis client: %s", exc)
         _redis = None
 
 
@@ -44,7 +55,9 @@ def get_redis() -> RedisLike:
     (for tests/local dev).
     """
     if _redis is None:
+        logger.debug("Redis not configured - returning NullRedis")
         return _NullRedis()
+    logger.debug("Returning configured Redis client")
     return _redis
 
 # FastAPI dependency

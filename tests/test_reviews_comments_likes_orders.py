@@ -1,17 +1,17 @@
 import uuid
 
-def test_review_comment_like_order_flow(test_app):
+def test_review_comment_like_order_flow(test_app, admin_headers):
     # create user
     user_id = str(uuid.uuid4())
     r = test_app.post("/api/v1/users/", json={"id": user_id, "username": "u1", "email": "u1@example.com", "password": "pw"})
     assert r.status_code == 201
     # create author
     author_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/authors/", json={"id": author_id, "name": "A"})
+    r = test_app.post("/api/v1/authors/", json={"id": author_id, "name": "A"}, headers=admin_headers)
     assert r.status_code == 201
     # create book
     book_id = str(uuid.uuid4())
-    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "B", "author_id": author_id})
+    r = test_app.post("/api/v1/books/", json={"id": book_id, "title": "B", "author_id": author_id}, headers=admin_headers)
     assert r.status_code == 201
     # create review
     review_id = str(uuid.uuid4())

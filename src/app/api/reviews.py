@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Response
 from pydantic import BaseModel
 from ..db.models import UserBookReview, Book
 from app.db.base import get_session
@@ -52,14 +52,35 @@ async def delete_review(review_id: str):
         return {"ok": True}
 
 @router.get("/book/{book_id}", response_model=list[ReviewOut])
-async def list_reviews_for_book(book_id: str, page: int = 1, per_page: int = 20):
+async def list_reviews_for_book(response: Response, book_id: str, page: int = 1, per_page: int = 20, title: str | None = None, content: str | None = None, sort_by: str | None = None, sort_dir: str = "asc"):
     async with get_session() as session:
         # ensure book exists
         b = await session.get(Book, book_id)
         if not b:
             raise HTTPException(status_code=404, detail="Book not found")
-        from sqlalchemy import select
-        stmt = select(UserBookReview).where(UserBookReview.book_id == book_id).offset((page - 1) * per_page).limit(per_page)
+        from sqlalchemy import select, asc, desc, func
+        stmt = select(UserBookReview).where(UserBookReview.book_id == book_id)
+        if title:
+            stmt = stmt.where(UserBookReview.title.ilike(f"%{title}%"))
+        if content:
+            stmt = stmt.where(UserBookReview.content.ilike(f"%{content}%"))
+        # total count
+        count_stmt = select(func.count()).select_from(UserBookReview).where(UserBookReview.book_id == book_id)
+        if title:
+            count_stmt = count_stmt.where(UserBookReview.title.ilike(f"%{title}%"))
+        if content:
+            count_stmt = count_stmt.where(UserBookReview.content.ilike(f"%{content}%"))
+        total = int((await session.execute(count_stmt)).scalar_one())
+        if sort_by and hasattr(UserBookReview, sort_by):
+            col = getattr(UserBookReview, sort_by)
+            if sort_dir and sort_dir.lower().startswith("desc"):
+                stmt = stmt.order_by(desc(col))
+            else:
+                stmt = stmt.order_by(asc(col))
+        stmt = stmt.offset((page - 1) * per_page).limit(per_page)
         res = await session.execute(stmt)
         revs = res.scalars().all()
+        response.headers["X-Total-Count"] = str(total)
+        response.headers["X-Page"] = str(page)
+        response.headers["X-Per-Page"] = str(per_page)
         return [ReviewOut.model_validate(r) for r in revs]
