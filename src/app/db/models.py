@@ -1,5 +1,7 @@
 from sqlalchemy import String, Column, Integer, Boolean, LargeBinary, ForeignKey, Text, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.util import deprecated
+
 from .base import Base
 import datetime
 from datetime import timezone

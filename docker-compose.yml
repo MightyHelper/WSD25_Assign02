@@ -9,6 +9,7 @@ services:
       - DATABASE_URL=mysql+aiomysql://appuser:apppass@db:3306/appdb
       - REDIS_URL=redis://redis:6379/0
       - PEPPER=${PEPPER}
+      - STORAGE_KIND=fs
     depends_on:
       db:
         condition: service_healthy
@@ -28,9 +29,9 @@ services:
       - "3306:3306"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -prootpass"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      interval: 3s
+      timeout: 3s
+      retries: 50
 
   redis:
     image: redis:7
@@ -38,9 +39,9 @@ services:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 3s
+      timeout: 3s
+      retries: 50
 
 volumes:
   uploads:

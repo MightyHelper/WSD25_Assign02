@@ -8,7 +8,7 @@ from app.db.base import get_session
 from app.db.models import Book, UserBookLikes, User
 from app.redis_client import get_redis_dep
 from app.storage import get_storage
-from ..security.dependencies import get_current_user
+from ..security.dependencies import get_current_user, get_current_admin_user
 from app.schemas.pagination import PagedResponse
 
 router = APIRouter(prefix="/api/v1/books", tags=["books"])
@@ -272,12 +272,13 @@ async def patch_book(book_id: str, book_in: BookIn, current_user: User = Depends
         return BookOut.model_validate(b)
 
 @router.post("/{book_id}/cover")
-async def upload_cover(book_id: str, request: Request, current_user: User = Depends(get_current_user)):
+async def upload_cover(book_id: str, request: Request, current_user: User = Depends(get_current_admin_user)):
     """Upload a cover image for a book. Uses configured storage (fs or db). Accepts raw bytes in the request body."""
     storage = get_storage()
     data = await request.body()
     if not data:
         raise HTTPException(status_code=400, detail="Empty body")
+    logger.info("Uploading cover for book_id=%s, data size=%d bytes", book_id, len(data))
     async with get_session() as session:
         book = await session.get(Book, book_id)
         if not book:

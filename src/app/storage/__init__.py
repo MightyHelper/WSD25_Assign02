@@ -1,6 +1,9 @@
 from typing import Protocol, Optional
 from uuid import uuid4
 from pathlib import Path
+
+from typing_extensions import deprecated
+
 from app.config import settings, StorageKind
 from app.db.models import Book
 import os
@@ -58,7 +61,11 @@ class FSStorage:
             if p.name.startswith(key):
                 await asyncio.to_thread(p.unlink)
 
+@deprecated("Use FS")
 class DBStorage:
+    def __init__(self):
+        logger.warning(f"DBStorage is deprecated; use FSStorage instead.")
+
     async def save_cover(self, book_id: str, data: bytes) -> Optional[str]:
         # DB storage writes to the Book.cover column; higher-level code will handle DB write
         return None
